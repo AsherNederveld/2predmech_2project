@@ -2,7 +2,7 @@ import os
 import subprocess
 
 # Configuration
-executables = ["champsim_bp", "champsim_bpb", "champsim_bpt"]  # List of executables to run
+executables = ["champsim_bp", "champsim_bpt", "champsim_bpb", "champsim_bpbt"]  # List of executables to run
 
 # Each entry: (trace_list_file, input_path_prefix, output_suffix)
 # Updated to use absolute paths to avoid relative pathing issues
@@ -17,7 +17,7 @@ os.makedirs(condor_dir, exist_ok=True)
 
 # Base job file template
 job_template = """\
-executable            = /projects/coursework/2026-spring/cs395t-lin/mbd2325/ChampSim/bin/{exe}
+executable            = /projects/coursework/2026-spring/cs395t-lin/asher/take2/2predmech_2project/bin/{exe}
 arguments             = --warmup-instructions 200000000 --simulation-instructions 200000000 $(trace)
 
 +Group                = "GUEST"
@@ -30,7 +30,7 @@ should_transfer_files     = YES
 when_to_transfer_output   = ON_EXIT
 transfer_input_files      = bin/{exe}, {input_path}$(trace)
 
-output                = /scratch/cluster/mbd2325/{exe}.$(trace).out
+output                = /projects/coursework/2026-spring/cs395t-lin/asher/take2/2predmech_2project/dump/{exe}.$(trace).out
 
 request_memory = 256MB
 request_disk = 1500000
