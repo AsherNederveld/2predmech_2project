@@ -2,7 +2,7 @@ import os
 import subprocess
 
 # Configuration
-executables = ["champsim_bp", "champsim_bpt", "champsim_bpb", "champsim_bpbt"]  # List of executables to run
+executables = ["champsim_berti", "champsim_triage", "champsim_pythia", "champsim_base", "champsim_boomerang"]  # List of executables to run
 
 # Each entry: (trace_list_file, input_path_prefix, output_suffix)
 # Updated to use absolute paths to avoid relative pathing issues

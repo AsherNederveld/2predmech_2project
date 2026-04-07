@@ -260,6 +260,7 @@ void mockingjay::update_replacement_state(uint32_t triggering_cpu, long set, lon
                 if (cand.etr <= 1) { // Safer to use <= 1
                     // Issue prefetch directly to Victim Prefetch Buffer
                     champsim::address pf_addr(cand.block_addr << LOG2_BLOCK_SIZE);
+                    //Asher
                     cache->prefetch_to_vpb(pf_addr);
                     to_remove.push_back(pair.first);
                 }
@@ -328,7 +329,10 @@ void mockingjay::replacement_cache_fill(uint32_t triggering_cpu, long set, long 
 
         // Track evicted lines with 0 < ETR < 20 for prefetching
 // Track evicted lines with 0 < ETR < 20 for prefetching
+//asher
 if (evicted_etr > 0 && evicted_etr < 20) {
+// if (false && evicted_etr > 0 && evicted_etr < 20) {
+
     PrefetchCandidate cand;
     cand.block_addr = evicted_block;
     cand.set = set;
