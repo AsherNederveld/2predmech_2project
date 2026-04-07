@@ -50,13 +50,8 @@
 class CACHE : public champsim::operable
 {
   enum [[deprecated(
-      "Prefetchers may not specify arbitrary fill levels. Use CACHE::prefetch_line(pf_addr, fill_this_level, prefetch_metadata) instead.")]] FILL_LEVEL {
-    FILL_L1 = 1,
-    FILL_L2 = 2,
-    FILL_LLC = 4,
-    FILL_DRC = 8,
-    FILL_DRAM = 16
-  };
+      "Prefetchers may not specify arbitrary fill levels. Use CACHE::prefetch_line(pf_addr, fill_this_level, prefetch_metadata) instead.")]] FILL_LEVEL{
+      FILL_L1 = 1, FILL_L2 = 2, FILL_LLC = 4, FILL_DRC = 8, FILL_DRAM = 16};
 
   using channel_type = champsim::channel;
   using request_type = typename channel_type::request_type;
@@ -77,7 +72,6 @@ class CACHE : public champsim::operable
     bool skip_fill;
     bool is_translated;
     bool translate_issued = false;
-    bool is_instr = false;
 
     uint8_t asid[2] = {std::numeric_limits<uint8_t>::max(), std::numeric_limits<uint8_t>::max()};
 
@@ -106,7 +100,6 @@ public:
 
     access_type type;
     bool prefetch_from_this;
-    bool is_instr = false;
 
     uint8_t asid[2] = {std::numeric_limits<uint8_t>::max(), std::numeric_limits<uint8_t>::max()};
 
@@ -132,6 +125,17 @@ private:
 public:
   using BLOCK = champsim::cache_block;
 
+  struct VICTIM_PREFETCH_BUFFER_ENTRY {
+      bool valid = false;
+      champsim::address address{};
+      champsim::address v_address{};
+      champsim::address data{};
+      uint32_t pf_metadata = 0;
+      uint64_t lru_counter = 0;
+  };
+  std::array<VICTIM_PREFETCH_BUFFER_ENTRY, 16> victim_prefetch_buffer{};
+  uint64_t vpb_lru_counter = 0;
+
 private:
   static BLOCK fill_block(mshr_type mshr, uint32_t metadata);
   using set_type = std::vector<BLOCK>;
@@ -148,9 +152,6 @@ private:
 
   template <typename T>
   champsim::address module_address(const T& element) const;
-
-  template <typename T>
-  bool module_is_instr(const T& element) const;
 
   auto matches_address(champsim::address address) const;
   std::pair<mshr_type, request_type> mshr_and_forward_packet(const tag_lookup_type& handle_pkt);
@@ -190,6 +191,9 @@ public:
   void begin_phase() final;
   void end_phase(unsigned cpu) final;
 
+  bool in_cache(champsim::address address);
+  bool was_prefetched(champsim::address address);
+
   [[deprecated]] std::size_t get_occupancy(uint8_t queue_type, champsim::address address) const;
   [[deprecated]] std::size_t get_size(uint8_t queue_type, champsim::address address) const;
 
@@ -221,6 +225,7 @@ public:
 
   long invalidate_entry(champsim::address inval_addr);
   bool prefetch_line(champsim::address pf_addr, bool fill_this_level, uint32_t prefetch_metadata);
+  bool prefetch_to_vpb(champsim::address pf_addr);
 
   [[deprecated]] bool prefetch_line(uint64_t pf_addr, bool fill_this_level, uint32_t prefetch_metadata);
 
