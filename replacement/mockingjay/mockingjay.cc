@@ -144,6 +144,7 @@ long mockingjay::find_victim(uint32_t triggering_cpu, uint64_t instr_id, long se
         incoming_etr = (rdp[pc_signature] > MAX_RD) ? INF_ETR : (rdp[pc_signature] / GRANULARITY);
     }
 
+    //asher
     if (type == access_type::PREFETCH && incoming_etr >= 1) {
         return NUM_WAY; // Bypass the LLC. handle_fill will put it in the Victim Prefetch Buffer!
     }
