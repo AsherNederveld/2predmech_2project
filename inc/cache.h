@@ -136,6 +136,21 @@ public:
   std::array<VICTIM_PREFETCH_BUFFER_ENTRY, 16> victim_prefetch_buffer{};
   uint64_t vpb_lru_counter = 0;
 
+  bool enable_lpc; // asher: flag to enable the Last level prefetch cache for prefetches from the LLC.
+  bool allow_l1l2_in_lpc; // asher: flag to allow prefetches from the L1 and L2 to be stored in the LPC. LLC prefetches are always allowed in the LPC.
+  bool enable_llc_filter_all; // asher: flag to enable the LLC filter on prefetches from L1, L2, and LLC caches, preventing prefetches from the L1, L2, and LLC, being stored in the LLC
+  bool enable_llc_filter_partial; // asher: flag to enable the LLC filter on prefetches from L1 and L2 cache, preventing prefetches from L1 and L2 being stored in the LLC
+  struct LPC_ENTRY {
+      bool valid = false;
+      champsim::address address{};
+      champsim::address v_address{};
+      champsim::address data{};
+      uint32_t pf_metadata = 0;
+      uint64_t lru_counter = 0;
+  };
+  std::array<LPC_ENTRY, 4096> lpc_buffer{};
+  uint64_t lpc_lru_counter = 0;
+
 private:
   static BLOCK fill_block(mshr_type mshr, uint32_t metadata);
   using set_type = std::vector<BLOCK>;
@@ -336,6 +351,7 @@ public:
         NUM_WAY(b.get_num_ways()), MSHR_SIZE(b.get_num_mshrs()), PQ_SIZE(b.m_pq_size), HIT_LATENCY(b.get_hit_latency() * b.m_clock_period),
         FILL_LATENCY(b.get_fill_latency() * b.m_clock_period), OFFSET_BITS(b.m_offset_bits), MAX_TAG(b.get_tag_bandwidth()), MAX_FILL(b.get_fill_bandwidth()),
         prefetch_as_load(b.m_pref_load), match_offset_bits(b.m_wq_full_addr), virtual_prefetch(b.m_va_pref), pref_activate_mask(b.m_pref_act_mask),
+        enable_lpc(b.m_enable_lpc), allow_l1l2_in_lpc(b.m_allow_l1l2_in_lpc), enable_llc_filter_all(b.m_enable_llc_filter_all), enable_llc_filter_partial(b.m_enable_llc_filter_partial),
         pref_module_pimpl(std::make_unique<prefetcher_module_model<Ps...>>(this)), repl_module_pimpl(std::make_unique<replacement_module_model<Rs...>>(this))
   {
   }

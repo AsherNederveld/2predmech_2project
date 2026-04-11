@@ -51,6 +51,11 @@ void to_json(nlohmann::json& j, const CACHE::stats_type& stats)
   statsmap.emplace("prefetch issued", stats.pf_issued);
   statsmap.emplace("useful prefetch", stats.pf_useful);
   statsmap.emplace("useless prefetch", stats.pf_useless);
+  if (stats.name == "LLC" && (stats.lpc_hits > 0 || stats.lpc_misses > 0 || stats.lpc_fills > 0)) {
+      statsmap.emplace("lpc hits", stats.lpc_hits);
+      statsmap.emplace("lpc misses", stats.lpc_misses);
+      statsmap.emplace("lpc fills", stats.lpc_fills);
+  }
 
   uint64_t total_downstream_demands = stats.mshr_return.total();
   for (std::size_t cpu = 0; cpu < NUM_CPUS; ++cpu)

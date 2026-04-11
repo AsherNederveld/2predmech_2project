@@ -57,6 +57,10 @@ struct cache_builder_base {
   bool m_pref_load{};
   bool m_wq_full_addr{};
   bool m_va_pref{};
+  bool m_enable_lpc{};
+  bool m_allow_l1l2_in_lpc{};
+  bool m_enable_llc_filter_all{};
+  bool m_enable_llc_filter_partial{};
 
   std::vector<access_type> m_pref_act_mask{access_type::LOAD, access_type::PREFETCH};
   std::vector<champsim::channel*> m_uls{};
@@ -211,6 +215,11 @@ public:
    * Specify that prefetchers should operate in the physical address space.
    */
   self_type& reset_virtual_prefetch();
+
+  self_type& set_enable_lpc();
+  self_type& set_allow_l1l2_in_lpc();
+  self_type& set_enable_llc_filter_all();
+  self_type& set_enable_llc_filter_partial();
 
   /**
    * Specify the ``access_type`` values that should activate the prefetcher.
@@ -482,6 +491,34 @@ template <typename P, typename R>
 auto champsim::cache_builder<P, R>::reset_virtual_prefetch() -> self_type&
 {
   m_va_pref = false;
+  return *this;
+}
+
+template <typename P, typename R>
+auto champsim::cache_builder<P, R>::set_enable_lpc() -> self_type&
+{
+  m_enable_lpc = true;
+  return *this;
+}
+
+template <typename P, typename R>
+auto champsim::cache_builder<P, R>::set_allow_l1l2_in_lpc() -> self_type&
+{
+  m_allow_l1l2_in_lpc = true;
+  return *this;
+}
+
+template <typename P, typename R>
+auto champsim::cache_builder<P, R>::set_enable_llc_filter_all() -> self_type&
+{
+  m_enable_llc_filter_all = true;
+  return *this;
+}
+
+template <typename P, typename R>
+auto champsim::cache_builder<P, R>::set_enable_llc_filter_partial() -> self_type&
+{
+  m_enable_llc_filter_partial = true;
   return *this;
 }
 

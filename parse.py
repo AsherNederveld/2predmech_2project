@@ -55,7 +55,8 @@ def main():
 
     # 2. Prepare CSV writing
     benchmarks_sorted = sorted(list(all_benchmarks))
-    header = ["Config"] + benchmarks_sorted + ["Geometric Mean"]
+    # Moved "Geometric Mean" to the second position in the header
+    header = ["Config", "Geometric Mean"] + benchmarks_sorted
     
     output_file = "ipc_results.csv"
     with open(output_file, 'w', newline='') as f:
@@ -63,22 +64,27 @@ def main():
         writer.writerow(header)
 
         for config in sorted(data.keys()):
-            row = [config]
+            # Collect individual IPCs for this config first
             row_ipcs = []
+            bench_values = []
             
             for bench in benchmarks_sorted:
                 ipc = data[config].get(bench, "")
-                row.append(ipc)
-                if isinstance(ipc, float):
+                bench_values.append(ipc)
+                if isinstance(ipc, (float, int)):
                     row_ipcs.append(ipc)
             
-            # Calculate and append GeoMean
+            # Calculate GeoMean
             gmean = calculate_geomean(row_ipcs) if row_ipcs else "N/A"
-            row.append(gmean)
             
-            writer.writerow(row)
+            # Print to console as requested: GeoMean followed by individual IPCs
+            print(f"Config: {config} | GeoMean: {gmean} | IPCs: {bench_values}")
 
-    print(f"Successfully generated {output_file}")
+            # Construct the final row: [Config, GeoMean, Bench1, Bench2, ...]
+            final_row = [config, gmean] + bench_values
+            writer.writerow(final_row)
+
+    print(f"\nSuccessfully generated {output_file}")
 
 if __name__ == "__main__":
     main()

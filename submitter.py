@@ -2,7 +2,7 @@ import os
 import subprocess
 
 # Configuration
-executables = ["champsim_drrip_base", "champsim_pacman_base", "champsim_lru_base", "champsim_mockingjay_base", "champsim_ship_base"]  # List of executables to run
+executables = ["champsim_mockingjay_bypass_triage_base" ]  # List of executables to run
 
 # Each entry: (trace_list_file, input_path_prefix, output_suffix)
 # Updated to use absolute paths to avoid relative pathing issues
@@ -15,7 +15,7 @@ jobs = [
 condor_dir = "./condor_jobs"  # Where job files will be written
 os.makedirs(condor_dir, exist_ok=True)
 
-# Base job file template
+# bypass job file template
 job_template = """\
 executable            = /projects/coursework/2026-spring/cs395t-lin/asher/take2/2predmech_2project/bin/{exe}
 arguments             = --warmup-instructions 200000000 --simulation-instructions 500000000 $(trace)

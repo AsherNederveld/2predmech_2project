@@ -41,6 +41,7 @@ CACHE::CACHE(CACHE&& other)
       HIT_LATENCY(other.HIT_LATENCY), FILL_LATENCY(other.FILL_LATENCY), OFFSET_BITS(other.OFFSET_BITS), block(std::move(other.block)), MAX_TAG(other.MAX_TAG),
       MAX_FILL(other.MAX_FILL), prefetch_as_load(other.prefetch_as_load), match_offset_bits(other.match_offset_bits), virtual_prefetch(other.virtual_prefetch),
       pref_activate_mask(std::move(other.pref_activate_mask)),
+      enable_lpc(other.enable_lpc), allow_l1l2_in_lpc(other.allow_l1l2_in_lpc), enable_llc_filter_all(other.enable_llc_filter_all), enable_llc_filter_partial(other.enable_llc_filter_partial),
 
       sim_stats(std::move(other.sim_stats)), roi_stats(std::move(other.roi_stats)),
 
@@ -79,6 +80,11 @@ auto CACHE::operator=(CACHE&& other) -> CACHE&
   this->match_offset_bits = other.match_offset_bits;
   this->virtual_prefetch = other.virtual_prefetch;
   this->pref_activate_mask = std::move(other.pref_activate_mask);
+
+  this->enable_lpc = other.enable_lpc;
+  this->allow_l1l2_in_lpc = other.allow_l1l2_in_lpc;
+  this->enable_llc_filter_all = other.enable_llc_filter_all;
+  this->enable_llc_filter_partial = other.enable_llc_filter_partial;
 
   this->sim_stats = std::move(other.sim_stats);
   this->roi_stats = std::move(other.roi_stats);
@@ -177,6 +183,16 @@ bool CACHE::handle_fill(const mshr_type& fill_mshr)
     way = std::next(set_begin, impl_find_victim(fill_mshr.cpu, fill_mshr.instr_id, get_set_index(fill_mshr.address), &*set_begin, fill_mshr.ip,
                                                 fill_mshr.address, fill_mshr.type));
   }
+
+  // Bypass LLC for prefetch fills asher
+  if (NAME == "LLC" && fill_mshr.type == access_type::PREFETCH) {
+    if (enable_llc_filter_all) {
+      way = set_end;
+    } else if (enable_llc_filter_partial && !fill_mshr.prefetch_from_this) {
+      way = set_end;
+    }
+  }
+
   assert(set_begin <= way);
   assert(way <= set_end);
   assert(way != set_end || fill_mshr.type != access_type::WRITE); // Writes may not bypass
@@ -219,8 +235,11 @@ bool CACHE::handle_fill(const mshr_type& fill_mshr)
 
   auto metadata_thru = impl_prefetcher_cache_fill(module_address(fill_mshr), get_set_index(fill_mshr.address), way_idx,
                                                   (fill_mshr.type == access_type::PREFETCH), evicting_address, fill_mshr.data_promise->pf_metadata);
-  impl_replacement_cache_fill(fill_mshr.cpu, get_set_index(fill_mshr.address), way_idx, module_address(fill_mshr), fill_mshr.ip, evicting_address,
-                              fill_mshr.type);
+  // Do not update replacement policy if we are bypassing the cache asher
+  if (way != set_end) {
+    impl_replacement_cache_fill(fill_mshr.cpu, get_set_index(fill_mshr.address), way_idx, module_address(fill_mshr), fill_mshr.ip, evicting_address,
+                                fill_mshr.type);
+  }
 
   if (way != set_end) {
     if (way->valid && way->prefetch) {
@@ -244,6 +263,19 @@ bool CACHE::handle_fill(const mshr_type& fill_mshr)
     vpb_it->data = fill_mshr.data_promise->data;
     vpb_it->pf_metadata = metadata_thru;
     vpb_it->lru_counter = ++vpb_lru_counter;
+  } else if (enable_lpc && NAME == "LLC" && fill_mshr.type == access_type::PREFETCH && (fill_mshr.prefetch_from_this || allow_l1l2_in_lpc)) {
+    // Put prefetch into LPC
+    auto lpc_it = std::find_if(lpc_buffer.begin(), lpc_buffer.end(), [](const auto& x){ return !x.valid; });
+    if (lpc_it == lpc_buffer.end()) {
+       lpc_it = std::min_element(lpc_buffer.begin(), lpc_buffer.end(), [](const auto& a, const auto& b){ return a.lru_counter < b.lru_counter; });
+    }
+    lpc_it->valid = true;
+    lpc_it->address = fill_mshr.address;
+    lpc_it->v_address = fill_mshr.v_address;
+    lpc_it->data = fill_mshr.data_promise->data;
+    lpc_it->pf_metadata = metadata_thru;
+    lpc_it->lru_counter = ++lpc_lru_counter;
+    sim_stats.lpc_fills++;
   }
 
   // COLLECT STATS
@@ -278,7 +310,51 @@ bool CACHE::try_hit(const tag_lookup_type& handle_pkt)
 {
   cpu = handle_pkt.cpu;
 
-  // FIRST, check Victim Prefetch Buffer
+  // FIRST, check LPC buffer (Last Level Prefetch Cache)
+  if (enable_lpc && NAME == "LLC") {
+      auto lpc_it = std::find_if(lpc_buffer.begin(), lpc_buffer.end(),
+                                 [matcher = matches_address(handle_pkt.address)](const auto& x) { return x.valid && matcher(x); });
+                                 
+      if (lpc_it != lpc_buffer.end()) {
+          lpc_it->lru_counter = ++lpc_lru_counter;
+          sim_stats.lpc_hits++;
+          
+          bool useful_prefetch = true;
+          sim_stats.hits.increment(std::pair{handle_pkt.type, handle_pkt.cpu});
+          if (handle_pkt.type != access_type::PREFETCH) {
+              ++sim_stats.pf_useful;
+          }
+          
+          auto metadata_thru = lpc_it->pf_metadata;
+          if (should_activate_prefetcher(handle_pkt)) {
+              metadata_thru = impl_prefetcher_cache_operate(module_address(handle_pkt), handle_pkt.ip, true, useful_prefetch, handle_pkt.type, metadata_thru);
+          }
+          
+          response_type response{handle_pkt.address, handle_pkt.v_address, lpc_it->data, metadata_thru, handle_pkt.instr_depend_on_me};
+          for (auto* ret : handle_pkt.to_return) {
+            ret->push_back(response);
+          }
+          
+          // Bring the block to the LLC natively via MSHR -> handle_fill
+          if (std::size(MSHR) < MSHR_SIZE) {
+              tag_lookup_type handle_pkt_fake = handle_pkt;
+              
+              mshr_type spoof_mshr{handle_pkt_fake, current_time};
+              spoof_mshr.data_promise = champsim::waitable{mshr_type::returned_value{lpc_it->data, lpc_it->pf_metadata}, current_time};
+              spoof_mshr.to_return.clear(); // Avoid duplicating responses to waiting L2 requests
+              
+              MSHR.emplace_back(std::move(spoof_mshr));
+              
+          // Invalidate from LPC because it is migrating over to the LLC main capacity
+              lpc_it->valid = false;
+          }
+          return true;
+      } else {
+          sim_stats.lpc_misses++;
+      }
+  }
+
+  // SECOND, check Victim Prefetch Buffer
   auto vpb_it = std::find_if(victim_prefetch_buffer.begin(), victim_prefetch_buffer.end(),
                              [matcher = matches_address(handle_pkt.address)](const auto& x) { return x.valid && matcher(x); });
                              
