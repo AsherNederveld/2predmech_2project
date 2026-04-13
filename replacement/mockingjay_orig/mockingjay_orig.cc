@@ -271,16 +271,16 @@ void mockingjay_orig::replacement_cache_fill(uint32_t triggering_cpu, long set, 
         EvictRecord& rec = it->second;
         uint64_t return_time = current_cycle - rec.cycle_evicted;
         
-        std::cout << std::hex << incoming_block << std::dec << ","
-                  << rec.set << ","
-                  << rec.cycle_evicted << ","
-                  << current_cycle << ","
-                  << return_time << ","
-                  << rec.incoming_etr;
-        for (int e : rec.ways_etr) {
-            std::cout << "," << e;
-        }
-        std::cout << '\n';
+        // std::cout << std::hex << incoming_block << std::dec << ","
+        //           << rec.set << ","
+        //           << rec.cycle_evicted << ","
+        //           << current_cycle << ","
+        //           << return_time << ","
+        //           << rec.incoming_etr;
+        // for (int e : rec.ways_etr) {
+        //     std::cout << "," << e;
+        // }
+        // std::cout << '\n';
         
         eviction_history.erase(it);
     }
@@ -319,15 +319,15 @@ void mockingjay_orig::replacement_final_stats() {
         uint64_t evicted_block = pair.first;
         const EvictRecord& rec = pair.second;
         
-        std::cout << std::hex << evicted_block << std::dec << ","
-                  << rec.set << ","
-                  << rec.cycle_evicted << ","
-                  << "-1,-1,"
-                  << rec.incoming_etr;
-        for (int e : rec.ways_etr) {
-            std::cout << "," << e;
-        }
-        std::cout << '\n';
+        // std::cout << std::hex << evicted_block << std::dec << ","
+        //           << rec.set << ","
+        //           << rec.cycle_evicted << ","
+        //           << "-1,-1,"
+        //           << rec.incoming_etr;
+        // for (int e : rec.ways_etr) {
+        //     std::cout << "," << e;
+        // }
+        // std::cout << '\n';
     }
     eviction_history.clear();
 }

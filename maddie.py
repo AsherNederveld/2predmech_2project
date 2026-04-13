@@ -70,7 +70,7 @@ def main():
     # Define the directory where result files are actually stored
     dump_dir = os.path.join(script_dir, "dump")
     
-    output_filename = "./new_res/zzz_ipc_pacman_results.csv"
+    output_filename = "./new_res/zzz_ipc_drrip_results.csv"
     headers = ["Benchmark", "Baseline_IPC", "Experimental_IPC", "Speedup", 
                "Buffer_Hits", "Buffer_Inserts", "Buffer_Hit_Rate"]
 
@@ -90,8 +90,8 @@ def main():
 
         for bench in BENCHMARK_ORDER:
             # Removed "./dump/" from prefixes because listdir returns just the filenames
-            base_prefix = "champsim_mockingjay_base"
-            exp_prefix = "champsim_mockingjay_bypass"
+            base_prefix = "champsim_drrip_base"
+            exp_prefix = "champsim_drrip_bypass"
             
             baseline_file = find_file(base_prefix, bench, all_files)
             experimental_file = find_file(exp_prefix, bench, all_files)
