@@ -1,5 +1,5 @@
 {
-    "executable_name": "champsim_mockingjay_bypass_triage_base",
+    "executable_name": "champsim_mockingjay.orig_no_16_nlpc_all_filtAll",
     "block_size": 64,
     "page_size": 4096,
     "heartbeat_frequency": 10000000,
@@ -137,7 +137,7 @@
     "LLC": {
         "frequency": 4000,
         "sets": 8192,
-        "ways": 17,
+        "ways": 16,
         "rq_size": 32,
         "wq_size": 32,
         "pq_size": 32,
@@ -148,11 +148,11 @@
         "prefetch_as_load": false,
         "virtual_prefetch": false,
         "prefetch_activate": "LOAD,PREFETCH",
-        "prefetcher": "triage",
+        "prefetcher": "no",
         "replacement": "mockingjay_orig",
         "enable_lpc": false,
-        "allow_l1l2_in_lpc": false,
-        "enable_llc_filter_all": false,
+        "allow_l1l2_in_lpc": true,
+        "enable_llc_filter_all": true,
         "enable_llc_filter_partial": true
     },
     "physical_memory": {

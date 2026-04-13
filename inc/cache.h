@@ -148,7 +148,7 @@ public:
       uint32_t pf_metadata = 0;
       uint64_t lru_counter = 0;
   };
-  std::array<LPC_ENTRY, 4096> lpc_buffer{};
+  std::array<LPC_ENTRY, 8192> lpc_buffer{};
   uint64_t lpc_lru_counter = 0;
 
 private:
