@@ -5,12 +5,16 @@ import subprocess
 # executables = ["champsim_drrip_base","champsim_drrip_bypass", "champsim_mockingjay_base", "champsim_mockingjay_bypass", "champsim_pacman_base", "champsim_pacman_bypass", "champsim_mockingjay_lpc_all_triage", "champsim_mockingjay_lpc_llc_triage", "champsim_mockingjay_nlpc_all_triage", "champsim_mockingjay_nlpc_llc_triage" ]  # List of executables to run
 # executables = ["champsim_mockingjay_lpc_all_stride", "champsim_mockingjay_lpc_llc_stride", "champsim_mockingjay_nlpc_all_stride", "champsim_mockingjay_nlpc_llc_stride" ]  # List of executables to run
 executables = [
-    "champsim_mockingjay.orig_triage_16_lpc_llc_filtAll",
-    "champsim_mockingjay.orig_triage_16_lpc_all_filtAll",
-    "champsim_mockingjay.orig_triage_17_nlpc_llc_filtNone",
-    "champsim_mockingjay.orig_triage_17_nlpc_all_filtNonLLC",
-    "champsim_mockingjay.orig_no_16_nlpc_all_filtNone",
-    "champsim_mockingjay.orig_no_16_nlpc_all_filtAll"
+    "champsim_mockingjay.orig_pythia_16_lpc_llc_filtAll",
+    "champsim_mockingjay.orig_pythia_16_lpc_all_filtAll",
+    "champsim_mockingjay.orig_pythia_17_nlpc_llc_filtNone",
+    "champsim_mockingjay.orig_pythia_17_nlpc_all_filtNonLLC"
+    # "champsim_mockingjay.orig_triage_16_lpc_llc_filtAll",
+    # "champsim_mockingjay.orig_triage_16_lpc_all_filtAll",
+    # "champsim_mockingjay.orig_triage_17_nlpc_llc_filtNone",
+    # "champsim_mockingjay.orig_triage_17_nlpc_all_filtNonLLC",
+    # "champsim_mockingjay.orig_no_16_nlpc_all_filtNone",
+    # "champsim_mockingjay.orig_no_16_nlpc_all_filtAll"
 ]
 # Each entry: (trace_list_file, input_path_prefix, output_suffix)
 # Updated to use absolute paths to avoid relative pathing issues

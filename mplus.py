@@ -6,54 +6,18 @@ import statistics
 import matplotlib.pyplot as plt
 import numpy as np
 
-BENCHMARK_ORDER = [
-    "astar_163B", "astar_23B", "astar_313B",
-    "bfs__amazon-2008-mtx__17000000000", "bfs__amazon-2008-mtx__19000000000",
-    "bfs__amazon-2008-mtx__23000000000", "bfs__citationCiteseer-mtx__1000000000",
-    "bfs__citationCiteseer-mtx__4000000000", "bfs__citationCiteseer-mtx__7000000000",
-    "bfs__com-Youtube-mtx__11000000000", "bfs__com-Youtube-mtx__14000000000",
-    "bfs__com-Youtube-mtx__5000000000", "bfs__dblp-2010-mtx__1000000000",
-    "bfs__dblp-2010-mtx__4000000000", "bfs__luxembourg_osm-mtx__0",
-    "bfs__netherlands_osm-mtx__37000000000", "bfs__netherlands_osm-mtx__4000000000",
-    "bwaves_1609B", "bwaves_1861B", "bwaves_98B",
-    "calculix_2655B", "calculix_2670B", "calculix_3812B",
-    "cc__amazon-2008-mtx__17000000000", "cc__amazon-2008-mtx__19000000000",
-    "cc__amazon-2008-mtx__25000000000", "cc__citationCiteseer-mtx__1000000000",
-    "cc__citationCiteseer-mtx__5000000000", "cc__com-Youtube-mtx__11000000000",
-    "cc__com-Youtube-mtx__13000000000", "cc__com-Youtube-mtx__4000000000",
-    "cc__dblp-2010-mtx__1000000000", "cc__dblp-2010-mtx__3000000000",
-    "cc__dblp-2010-mtx__6000000000", "cc__luxembourg_osm-mtx__0",
-    "cc__netherlands_osm-mtx__11000000000", "cc__netherlands_osm-mtx__2000000000",
-    "gcc_13B", "gcc_39B", "gcc_56B",
-    "mcf_158B", "mcf_250B", "mcf_46B",
-    "omnetpp_17B", "omnetpp_340B", "omnetpp_4B",
-    "perlbench_105B", "perlbench_135B", "perlbench_53B",
-    "bfs__kron-18__269000000000", "bfs__urand-17__39000000000",
-    "bfs__urand-17__699000000000", "bfs__urand-18__1342000000000",
-    "bfs__urand-18__2050000000000", "cc__kron-18__366000000000",
-    "cc__urand-17__1304000000000", "cc__urand-17__550000000000",
-    "cc__urand-18__2669000000000", "soplex_205B",
-    "soplex_217B", "soplex_66B", "sphinx3_1339B",
-    "sphinx3_2520B", "sphinx3_883B", "xalancbmk_748B",
-    "xalancbmk_768B", "xalancbmk_99B"
-]
-
 def normalize(name):
     return name.replace('-', '_').replace('.', '_').lower()
 
 def extract_stats(filepath):
-    stats = {"ipc": None, "hits": None, "inserts": None}
+    stats = {"ipc": None}
     if not filepath or not os.path.exists(filepath):
         return stats
     try:
-        cmd = f"grep -E 'cumulative IPC|Total Hits in buffer|Total Inserted into buffer' '{filepath}'"
+        cmd = f"grep -E 'cumulative IPC' '{filepath}'"
         out = subprocess.check_output(cmd, shell=True, text=True, stderr=subprocess.DEVNULL)
         ipc_matches = re.findall(r"cumulative IPC:\s*([\d.]+)", out)
-        hits_matches = re.findall(r"(\d+)\s*Total Hits in buffer", out)
-        ins_matches = re.findall(r"(\d+)\s*Total Inserted into buffer", out)
         if ipc_matches: stats["ipc"] = float(ipc_matches[-1])
-        if hits_matches: stats["hits"] = int(hits_matches[-1])
-        if ins_matches: stats["inserts"] = int(ins_matches[-1])
     except Exception:
         pass
     return stats
@@ -66,9 +30,27 @@ def find_file(prefix, bench, all_files):
                 return filename
     return None
 
+def get_dynamic_benchmarks(prefixes, all_files):
+    """Dynamically extracts unique benchmark names from filenames based on the provided prefixes."""
+    benchmarks = set()
+    for filename in all_files:
+        if not filename.endswith('.out'):
+            continue
+        for prefix in prefixes:
+            if filename.startswith(prefix):
+                # Strip prefix and .out extension
+                bench_name = filename[len(prefix):-4]
+                # Remove any leading connecting characters like underscores or dashes
+                bench_name = bench_name.lstrip('_').lstrip('-')
+                if bench_name:
+                    benchmarks.add(bench_name)
+    return sorted(list(benchmarks))
+
 def plot_results(benchmarks, speedup_dict, output_path):
     """Generates a bar chart for speedup comparisons."""
-    plt.figure(figsize=(20, 8))
+    # If there are a lot of dynamic benchmarks, we might need a wider figure
+    fig_width = max(20, len(benchmarks) * 0.3)
+    plt.figure(figsize=(fig_width, 8))
     
     x = np.arange(len(benchmarks))
     width = 0.8 / len(speedup_dict)  # Adjust bar width based on number of experiments
@@ -95,9 +77,17 @@ def main():
     dump_dir = os.path.join(script_dir, "dump")
     
     # --- CONFIGURATION ---
-    base_prefix = "champsim_drrip_base"
-    exp_prefixes = ["champsim_drrip_bypass", "champsim_drrip_aggressive"] # Add more as needed
-    # ---------------------
+    # base_prefix = "champsim_mockingjay_nlpc_all_triage"
+    # exp_prefixes = ["champsim_mockingjay_nlpc_llc_triage", "champsim_mockingjay_lpc_all_triage", "champsim_mockingjay_lpc_llc_triage"]
+   
+    # base_prefix = "champsim_mockingjay_base"
+    # exp_prefixes = ["champsim_mockingjay_bypass", "champsim_mockingjay_nlpc_all_triage", "champsim_mockingjay_nlpc_llc_triage", "champsim_mockingjay_lpc_all_triage", "champsim_mockingjay_lpc_llc_triage"]    
+    
+    # base_prefix = "champsim_drrip_base"
+    # exp_prefixes = ["champsim_drrip_bypass"]
+
+    base_prefix = "champsim_mockingjay.orig_triage_17_nlpc_llc_filtNone"
+    exp_prefixes = ["champsim_mockingjay.orig_triage_17_nlpc_all_filtNonLLC", "champsim_mockingjay.orig_triage_16_lpc_all_filtAll", "champsim_mockingjay.orig_triage_16_lpc_llc_filtAll"]
 
     # Generate dynamic filename based on inputs
     exp_tag = "_vs_".join(exp_prefixes)
@@ -110,12 +100,21 @@ def main():
         return
 
     all_files = os.listdir(dump_dir)
-    all_files.sort()
+    
+    # Dynamically grab benchmarks
+    all_prefixes = [base_prefix] + exp_prefixes
+    dynamic_benchmarks = get_dynamic_benchmarks(all_prefixes, all_files)
+    
+    if not dynamic_benchmarks:
+        print("No benchmarks found matching the given prefixes in the dump directory.")
+        return
+
+    print(f"Found {len(dynamic_benchmarks)} benchmarks dynamically.")
 
     # Dynamic headers
     headers = ["Benchmark", "Baseline_IPC"]
     for exp in exp_prefixes:
-        headers += [f"{exp}_IPC", f"{exp}_Speedup", f"{exp}_HitRate"]
+        headers += [f"{exp}_IPC", f"{exp}_Speedup"]
 
     # Storage for graphing
     graph_benchmarks = []
@@ -126,7 +125,7 @@ def main():
         writer = csv.DictWriter(csvfile, fieldnames=headers)
         writer.writeheader()
 
-        for bench in BENCHMARK_ORDER:
+        for bench in dynamic_benchmarks:
             baseline_file = find_file(base_prefix, bench, all_files)
             b_path = os.path.join(dump_dir, baseline_file) if baseline_file else None
             b_stats = extract_stats(b_path)
@@ -150,13 +149,6 @@ def main():
                 else:
                     graph_speedups[exp].append(None)
                     row[f"{exp}_Speedup"] = "N/A"
-                
-                # Hit Rate calculation
-                if e_stats["hits"] is not None and e_stats["inserts"] is not None:
-                    total = e_stats["hits"] + e_stats["inserts"]
-                    row[f"{exp}_HitRate"] = f"{(e_stats['hits'] / total * 100):.2f}%" if total > 0 else "0.00%"
-                else:
-                    row[f"{exp}_HitRate"] = "N/A"
                 
             writer.writerow(row)
             

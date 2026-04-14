@@ -218,9 +218,9 @@ class MEMORY_CONTROLLER : public champsim::operable
 
     inline void step(uint16_t active_ch)
     {
-      bin_active[idx] += active_ch;
+      bin_active[idx] = static_cast<std::array<uint16_t, 16>::value_type>(bin_active[idx] + active_ch);
       sum_active += active_ch;
-      bin_total[idx] += 1;
+      bin_total[idx] = static_cast<std::array<uint16_t, 16>::value_type>(bin_total[idx] + 1);
       sum_total += 1;
       if (++in_bin == BIN_LEN) {
         idx = (idx + 1) % NUM_BINS;

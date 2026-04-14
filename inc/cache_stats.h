@@ -20,6 +20,9 @@ struct cache_stats {
   uint64_t lpc_hits = 0;
   uint64_t lpc_misses = 0;
   uint64_t lpc_fills = 0;
+  uint64_t lpc_insertions = 0;
+  uint64_t lpc_evictions = 0;
+  uint64_t lpc_promotions = 0;
 
   champsim::stats::event_counter<std::pair<access_type, std::remove_cv_t<decltype(NUM_CPUS)>>> hits = {};
   champsim::stats::event_counter<std::pair<access_type, std::remove_cv_t<decltype(NUM_CPUS)>>> misses = {};

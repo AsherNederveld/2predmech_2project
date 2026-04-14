@@ -5,12 +5,12 @@ import os
 # List of configuration names based on your naming convention:
 # champsim_<LLC Replacement Policy>_<LLC Prefetcher>_<LLC Ways>_<LPC Enable>_<Allow L1/L2 in LPC>_<enable_llc_filter>
 configs = [
-    "champsim_mockingjay.orig_triage_16_lpc_llc_filtAll",
-    "champsim_mockingjay.orig_triage_16_lpc_all_filtAll",
-    "champsim_mockingjay.orig_triage_17_nlpc_llc_filtNone",
-    "champsim_mockingjay.orig_triage_17_nlpc_all_filtNonLLC",
-    "champsim_mockingjay.orig_no_16_nlpc_all_filtNone",
-    "champsim_mockingjay.orig_no_16_nlpc_all_filtAll"
+    "champsim_mockingjay.orig_pythia_16_lpc_llc_filtAll",
+    "champsim_mockingjay.orig_pythia_16_lpc_all_filtAll",
+    "champsim_mockingjay.orig_pythia_17_nlpc_llc_filtNone",
+    "champsim_mockingjay.orig_pythia_17_nlpc_all_filtNonLLC"
+    # "champsim_mockingjay.orig_no_16_nlpc_all_filtNone",
+    # "champsim_mockingjay.orig_no_16_nlpc_all_filtAll"
 ]
 
 CONFIG_FILE = "start_config.json"

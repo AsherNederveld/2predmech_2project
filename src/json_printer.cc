@@ -55,6 +55,9 @@ void to_json(nlohmann::json& j, const CACHE::stats_type& stats)
       statsmap.emplace("lpc hits", stats.lpc_hits);
       statsmap.emplace("lpc misses", stats.lpc_misses);
       statsmap.emplace("lpc fills", stats.lpc_fills);
+      statsmap.emplace("lpc insertions", stats.lpc_insertions);
+      statsmap.emplace("lpc evictions", stats.lpc_evictions);
+      statsmap.emplace("lpc promotions", stats.lpc_promotions);
   }
 
   uint64_t total_downstream_demands = stats.mshr_return.total();

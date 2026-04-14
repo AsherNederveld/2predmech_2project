@@ -11,6 +11,9 @@ cache_stats operator-(cache_stats lhs, cache_stats rhs)
   result.lpc_hits = lhs.lpc_hits - rhs.lpc_hits;
   result.lpc_misses = lhs.lpc_misses - rhs.lpc_misses;
   result.lpc_fills = lhs.lpc_fills - rhs.lpc_fills;
+  result.lpc_insertions = lhs.lpc_insertions - rhs.lpc_insertions;
+  result.lpc_evictions = lhs.lpc_evictions - rhs.lpc_evictions;
+  result.lpc_promotions = lhs.lpc_promotions - rhs.lpc_promotions;
 
   result.hits = lhs.hits - rhs.hits;
   result.misses = lhs.misses - rhs.misses;

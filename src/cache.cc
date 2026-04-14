@@ -268,6 +268,7 @@ bool CACHE::handle_fill(const mshr_type& fill_mshr)
     auto lpc_it = std::find_if(lpc_buffer.begin(), lpc_buffer.end(), [](const auto& x){ return !x.valid; });
     if (lpc_it == lpc_buffer.end()) {
        lpc_it = std::min_element(lpc_buffer.begin(), lpc_buffer.end(), [](const auto& a, const auto& b){ return a.lru_counter < b.lru_counter; });
+       sim_stats.lpc_evictions++;
     }
     lpc_it->valid = true;
     lpc_it->address = fill_mshr.address;
@@ -276,6 +277,7 @@ bool CACHE::handle_fill(const mshr_type& fill_mshr)
     lpc_it->pf_metadata = metadata_thru;
     lpc_it->lru_counter = ++lpc_lru_counter;
     sim_stats.lpc_fills++;
+    sim_stats.lpc_insertions++;
   }
 
   // COLLECT STATS
@@ -347,6 +349,7 @@ bool CACHE::try_hit(const tag_lookup_type& handle_pkt)
               
           // Invalidate from LPC because it is migrating over to the LLC main capacity
               lpc_it->valid = false;
+              sim_stats.lpc_promotions++;
           }
           return true;
       } else {

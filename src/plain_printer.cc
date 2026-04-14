@@ -121,6 +121,7 @@ std::vector<std::string> champsim::plain_printer::format(CACHE::stats_type stats
 
     if (stats.name == "LLC" && (stats.lpc_hits > 0 || stats.lpc_misses > 0 || stats.lpc_fills > 0)) {
         lines.push_back(fmt::format("cpu{}->{} LPC_HITS: {:10} LPC_MISSES: {:10} LPC_FILLS: {:10}", cpu, stats.name, stats.lpc_hits, stats.lpc_misses, stats.lpc_fills));
+        lines.push_back(fmt::format("cpu{}->{} LPC_INSERTIONS: {:10} LPC_EVICTIONS: {:10} LPC_PROMOTIONS: {:10}", cpu, stats.name, stats.lpc_insertions, stats.lpc_evictions, stats.lpc_promotions));
     }
 
     uint64_t total_downstream_demands = total_mshr_return - stats.mshr_return.value_or(std::pair{access_type::PREFETCH, cpu}, mshr_return_value_type{});
