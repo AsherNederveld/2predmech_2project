@@ -5,12 +5,31 @@ import os
 # List of configuration names based on your naming convention:
 # champsim_<LLC Replacement Policy>_<LLC Prefetcher>_<LLC Ways>_<LPC Enable>_<Allow L1/L2 in LPC>_<enable_llc_filter>
 configs = [
-    "champsim_mockingjay.orig_pythia_16_lpc_llc_filtAll",
-    "champsim_mockingjay.orig_pythia_16_lpc_all_filtAll",
-    "champsim_mockingjay.orig_pythia_17_nlpc_llc_filtNone",
-    "champsim_mockingjay.orig_pythia_17_nlpc_all_filtNonLLC"
-    # "champsim_mockingjay.orig_no_16_nlpc_all_filtNone",
-    # "champsim_mockingjay.orig_no_16_nlpc_all_filtAll"
+    # "champsim_mockingjay.orig_triage_16_lpc_llc_filtAll",
+    # "champsim_mockingjay.orig_triage_16_lpc_all_filtAll",
+    # "champsim_mockingjay.orig_triage_17_nlpc_llc_filtNone",
+    # "champsim_mockingjay.orig_triage_17_nlpc_all_filtNonLLC",
+    "champsim_mockingjay.orig_triage_17_nlpc_all_filtAll",
+    # "champsim_mockingjay.orig_no_17_nlpc_llc_filtAll",
+    # "champsim_mockingjay.orig_no_17_nlpc_llc_filtNone",
+    # "champsim_pacman_no_17_nlpc_llc_filtAll",
+    # "champsim_pacman_no_17_nlpc_llc_filtNone",
+    # "champsim_drrip_no_17_nlpc_llc_filtAll",
+    # "champsim_drrip_no_17_nlpc_llc_filtNone",
+    # "champsim_lru_no_17_nlpc_llc_filtAll",
+    # "champsim_lru_no_17_nlpc_llc_filtNone",
+    # "champsim_ship_no_17_nlpc_llc_filtAll",
+    # "champsim_ship_no_17_nlpc_llc_filtNone",
+    # "champsim_pacman_triage_16_lpc_llc_filtAll",
+    # "champsim_pacman_triage_16_lpc_all_filtAll",
+    # "champsim_pacman_triage_17_nlpc_llc_filtNone",
+    # "champsim_pacman_triage_17_nlpc_llc_filtNonLLC",
+    "champsim_pacman_triage_17_nlpc_llc_filtAll",
+    # "champsim_drrip_triage_16_lpc_llc_filtAll",
+    # "champsim_drrip_triage_16_lpc_all_filtAll",
+    # "champsim_drrip_triage_17_nlpc_llc_filtNone",
+    # "champsim_drrip_triage_17_nlpc_llc_filtNonLLC",
+    "champsim_drrip_triage_17_nlpc_llc_filtAll"
 ]
 
 CONFIG_FILE = "start_config.json"
@@ -33,14 +52,14 @@ def run_experiment(config_name):
     filter_str = parts[6]
 
     # 2. Map string codes to Boolean values
-    lpc_enable = True if lpc_enable_str == "lpc" else False
-    allow_l1l2 = True if allow_str == "all" else False
+    lpc_enable = True if lpc_enable_str == "lpc" and "n" not in lpc_enable_str else False
+    allow_l1l2 = True if allow_str == "all" and lpc_enable == True else False
 
     # Filter Logic:
     # filtAll: both True | filtnonLLC: all=False, partial=True | filtNone: both False
     if filter_str == "filtAll":
         f_all, f_partial = True, True
-    elif filter_str == "filtnonLLC":
+    elif filter_str == "filtNonLLC":
         f_all, f_partial = False, True
     else:  # filtNone
         f_all, f_partial = False, False

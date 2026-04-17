@@ -71,27 +71,58 @@ def plot_results(benchmarks, speedup_dict, output_path):
     graph_filename = output_path.replace('.csv', '.png')
     plt.savefig(graph_filename)
     print(f"Graph saved to {graph_filename}")
+    plt.close() # Close figure to free memory
+
+def plot_geomean_results(geomean_dict, output_path):
+    """Generates a bar chart specifically for the geometric mean speedups."""
+    if not geomean_dict:
+        return
+        
+    labels = list(geomean_dict.keys())
+    values = list(geomean_dict.values())
+    
+    plt.figure(figsize=(max(8, len(labels) * 1.5), 6))
+    bars = plt.bar(labels, values, color='cornflowerblue', edgecolor='black')
+    
+    plt.axhline(0, color='black', linewidth=0.8)
+    plt.ylabel('Geometric Mean Speedup (%)')
+    plt.title('Overall Geometric Mean Speedup by Experiment vs Baseline')
+    plt.xticks(rotation=45, ha='right', fontsize=10)
+    
+    # Add data labels on top of each bar
+    for bar in bars:
+        yval = bar.get_height()
+        # Adjust text offset depending on whether the bar is positive or negative
+        va = 'bottom' if yval >= 0 else 'top'
+        offset = 0.2 if yval >= 0 else -0.2
+        plt.text(bar.get_x() + bar.get_width() / 2, yval + offset, f'{yval:.2f}%', ha='center', va=va, fontsize=10)
+
+    plt.tight_layout()
+    
+    geomean_graph_filename = output_path.replace('.csv', '_geomean.png')
+    plt.savefig(geomean_graph_filename)
+    print(f"Geomean graph saved to {geomean_graph_filename}")
+    plt.close()
 
 def main():
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    dump_dir = os.path.join(script_dir, "dump")
+    dump_dir = os.path.join(script_dir, "hailmary")
     
     # --- CONFIGURATION ---
-    # base_prefix = "champsim_mockingjay_nlpc_all_triage"
-    # exp_prefixes = ["champsim_mockingjay_nlpc_llc_triage", "champsim_mockingjay_lpc_all_triage", "champsim_mockingjay_lpc_llc_triage"]
-   
-    # base_prefix = "champsim_mockingjay_base"
-    # exp_prefixes = ["champsim_mockingjay_bypass", "champsim_mockingjay_nlpc_all_triage", "champsim_mockingjay_nlpc_llc_triage", "champsim_mockingjay_lpc_all_triage", "champsim_mockingjay_lpc_llc_triage"]    
-    
-    # base_prefix = "champsim_drrip_base"
-    # exp_prefixes = ["champsim_drrip_bypass"]
-
-    base_prefix = "champsim_mockingjay.orig_triage_17_nlpc_llc_filtNone"
-    exp_prefixes = ["champsim_mockingjay.orig_triage_17_nlpc_all_filtNonLLC", "champsim_mockingjay.orig_triage_16_lpc_all_filtAll", "champsim_mockingjay.orig_triage_16_lpc_llc_filtAll"]
+    base_prefix =  "champsim_mockingjay.orig_triage_17_nlpc_all_filtNonLLC"#"champsim_mockingjay.orig_no_17_nlpc_llc_filtNone"#"champsim_lru_no_17_nlpc_llc_filtNone"
+    exp_prefixes = [
+        # "champsim_pacman_no_17_nlpc_llc_filtNone",
+        # "champsim_pacman_no_17_nlpc_llc_filtAll",
+        # "champsim_pacman_triage_17_nlpc_llc_filtAll",
+        # "champsim_pacman_triage_16_lpc_llc_filtAll",
+        # "champsim_mockingjay.orig_no_17_nlpc_llc_filtNone",
+        # "champsim_mockingjay.orig_no_17_nlpc_llc_filtAll",
+        # "champsim_mockingjay.orig_triage_17_nlpc_all_filtNonLLC",
+        "champsim_mockingjay.orig_triage_16_lpc_llc_filtAll",
+        ]
 
     # Generate dynamic filename based on inputs
-    exp_tag = "_vs_".join(exp_prefixes)
-    output_filename = f"./new_res/results_{base_prefix}_vs_{exp_tag}.csv"
+    output_filename = f"./new_res/results_{base_prefix}_vs_{exp_prefixes[0]}.csv"
     
     os.makedirs("./new_res", exist_ok=True)
 
@@ -126,9 +157,12 @@ def main():
         writer.writeheader()
 
         for bench in dynamic_benchmarks:
+            if "deg" in bench:
+                continue
             baseline_file = find_file(base_prefix, bench, all_files)
             b_path = os.path.join(dump_dir, baseline_file) if baseline_file else None
             b_stats = extract_stats(b_path)
+            baseline_ipc = b_stats["ipc"] if b_stats["ipc"] is not None else 0.3576000
             
             row = {"Benchmark": bench, "Baseline_IPC": b_stats["ipc"] if b_stats["ipc"] is not None else "N/A"}
             graph_benchmarks.append(bench)
@@ -154,18 +188,22 @@ def main():
             
     print(f"Data successfully output to {output_filename}")
 
-    # Geometric Mean Summary
+    # Geometric Mean Summary and Storage
     print("\n--- Summary (Geometric Mean Speedup) ---")
+    geomean_data = {}
     for exp in exp_prefixes:
         valid_ratios = [r for r in graph_speedups[exp] if r is not None]
         if valid_ratios:
             gmean = statistics.geometric_mean(valid_ratios)
-            print(f"{exp}: {((gmean - 1) * 100):.2f}%")
+            speedup_pct = (gmean - 1) * 100
+            geomean_data[exp] = speedup_pct
+            print(f"{exp}: {speedup_pct:.2f}%")
         else:
             print(f"{exp}: No data")
 
-    # Generate Graph
+    # Generate Graphs
     plot_results(graph_benchmarks, graph_speedups, output_filename)
+    plot_geomean_results(geomean_data, output_filename)
 
 if __name__ == "__main__":
     main()
