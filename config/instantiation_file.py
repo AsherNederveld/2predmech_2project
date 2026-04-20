@@ -72,6 +72,9 @@ cache_builder_parts = {
     'log2_sets': '.log2_sets({log2_sets})',
     'ways': '.ways({ways})',
     'log2_ways': '.log2_ways({log2_ways})',
+    'lpc_sets': '.lpc_sets({lpc_sets})',
+    'lpc_ways': '.lpc_ways({lpc_ways})',
+    'lpc_replacement_policy': '.lpc_replacement_policy("{lpc_replacement_policy}")',
     'pq_size': '.pq_size({pq_size})',
     'mshr_size': '.mshr_size({mshr_size})',
     'latency': '.latency({latency})',
@@ -153,7 +156,9 @@ def get_cache_builder(elem, ul_pairs):
         ('enable_lpc', True): '.set_enable_lpc()',
         ('allow_l1l2_in_lpc', True): '.set_allow_l1l2_in_lpc()',
         ('enable_llc_filter_all', True): '.set_enable_llc_filter_all()',
-        ('enable_llc_filter_partial', True): '.set_enable_llc_filter_partial()'
+        ('enable_llc_filter_partial', True): '.set_enable_llc_filter_partial()',
+        ('lpc_allow_promotion', True): '.set_lpc_allow_promotion()',
+        ('lpc_allow_promotion', False): '.reset_lpc_allow_promotion()'
     }
 
     uppers = (v for v in ul_pairs if v[0] == elem.get('name'))

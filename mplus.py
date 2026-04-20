@@ -106,19 +106,36 @@ def plot_geomean_results(geomean_dict, output_path):
 
 def main():
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    dump_dir = os.path.join(script_dir, "hailmary")
+    dump_dir = os.path.join(script_dir, "new_res")
     
     # --- CONFIGURATION ---
-    base_prefix =  "champsim_mockingjay.orig_triage_17_nlpc_all_filtNonLLC"#"champsim_mockingjay.orig_no_17_nlpc_llc_filtNone"#"champsim_lru_no_17_nlpc_llc_filtNone"
+    base_prefix =  "champsim_mockingjay.orig_triage_16_lpc_llc_filtAll_8192_1_prom_lru"#"champsim_lru_no_17_nlpc_llc_filtNone"# "champsim_mockingjay.orig_triage_17_nlpc_all_filtNonLLC"#"champsim_mockingjay.orig_no_17_nlpc_llc_filtNone"#
     exp_prefixes = [
-        # "champsim_pacman_no_17_nlpc_llc_filtNone",
-        # "champsim_pacman_no_17_nlpc_llc_filtAll",
-        # "champsim_pacman_triage_17_nlpc_llc_filtAll",
-        # "champsim_pacman_triage_16_lpc_llc_filtAll",
-        # "champsim_mockingjay.orig_no_17_nlpc_llc_filtNone",
-        # "champsim_mockingjay.orig_no_17_nlpc_llc_filtAll",
-        # "champsim_mockingjay.orig_triage_17_nlpc_all_filtNonLLC",
-        "champsim_mockingjay.orig_triage_16_lpc_llc_filtAll",
+        "champsim_mockingjay.orig_triage_16_lpc_llc_filtAll_8192_1_nprom_lru",
+        "champsim_mockingjay.orig_triage_16_lpc_llc_filtAll_512_16_prom_lru",
+        "champsim_mockingjay.orig_triage_16_lpc_llc_filtAll_512_16_nprom_lru",
+        "champsim_mockingjay.orig_triage_16_lpc_llc_filtAll_128_64_prom_lru",
+        "champsim_mockingjay.orig_triage_16_lpc_llc_filtAll_128_64_nprom_lru",   
+        "champsim_mockingjay.orig_triage_16_lpc_llc_filtAll_8192_1_prom_srrip",
+        "champsim_mockingjay.orig_triage_16_lpc_llc_filtAll_8192_1_nprom_srrip",
+        "champsim_mockingjay.orig_triage_16_lpc_llc_filtAll_512_16_prom_srrip",
+        "champsim_mockingjay.orig_triage_16_lpc_llc_filtAll_512_16_nprom_srrip",
+        "champsim_mockingjay.orig_triage_16_lpc_llc_filtAll_128_64_prom_srrip",
+        "champsim_mockingjay.orig_triage_16_lpc_llc_filtAll_128_64_nprom_srrip",
+        "champsim_mockingjay.orig_triage_16_lpc_llc_filtAll_512_16_prom_random",
+        "champsim_mockingjay.orig_triage_16_lpc_llc_filtAll_512_16_nprom_random",
+        "champsim_mockingjay.orig_triage_16_lpc_llc_filtAll_1_8192_prom_lru",
+        "champsim_mockingjay.orig_triage_16_lpc_llc_filtAll_1_8912_nprom_lru",
+        "champsim_mockingjay.orig_triage_16_lpc_llc_filtAll_1_8192_prom_srrip",
+        "champsim_mockingjay.orig_triage_16_lpc_llc_filtAll_1_8912_nprom_srrip",
+        "champsim_mockingjay.orig_triage_16_lpc_llc_filtAll_256_32_prom_lru",
+        "champsim_mockingjay.orig_triage_16_lpc_llc_filtAll_256_32_nprom_lru",
+        "champsim_mockingjay.orig_triage_16_lpc_llc_filtAll_256_32_prom_srrip",
+        "champsim_mockingjay.orig_triage_16_lpc_llc_filtAll_256_32_nprom_srrip",
+        "champsim_mockingjay.orig_triage_16_lpc_llc_filtAll_64_128_prom_lru",
+        "champsim_mockingjay.orig_triage_16_lpc_llc_filtAll_64_128_nprom_lru",
+        "champsim_mockingjay.orig_triage_16_lpc_llc_filtAll_64_128_prom_srrip",
+        "champsim_mockingjay.orig_triage_16_lpc_llc_filtAll_64_128_nprom_srrip"
         ]
 
     # Generate dynamic filename based on inputs

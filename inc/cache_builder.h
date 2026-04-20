@@ -61,6 +61,10 @@ struct cache_builder_base {
   bool m_allow_l1l2_in_lpc{};
   bool m_enable_llc_filter_all{};
   bool m_enable_llc_filter_partial{};
+  std::optional<uint32_t> m_lpc_sets{};
+  std::optional<uint32_t> m_lpc_ways{};
+  bool m_lpc_allow_promotion{};
+  std::string m_lpc_replacement_policy{"lru"};
 
   std::vector<access_type> m_pref_act_mask{access_type::LOAD, access_type::PREFETCH};
   std::vector<champsim::channel*> m_uls{};
@@ -220,6 +224,12 @@ public:
   self_type& set_allow_l1l2_in_lpc();
   self_type& set_enable_llc_filter_all();
   self_type& set_enable_llc_filter_partial();
+
+  self_type& lpc_sets(uint32_t lpc_sets_);
+  self_type& lpc_ways(uint32_t lpc_ways_);
+  self_type& set_lpc_allow_promotion();
+  self_type& reset_lpc_allow_promotion();
+  self_type& lpc_replacement_policy(std::string policy_);
 
   /**
    * Specify the ``access_type`` values that should activate the prefetcher.
@@ -519,6 +529,41 @@ template <typename P, typename R>
 auto champsim::cache_builder<P, R>::set_enable_llc_filter_partial() -> self_type&
 {
   m_enable_llc_filter_partial = true;
+  return *this;
+}
+
+template <typename P, typename R>
+auto champsim::cache_builder<P, R>::lpc_sets(uint32_t lpc_sets_) -> self_type&
+{
+  m_lpc_sets = lpc_sets_;
+  return *this;
+}
+
+template <typename P, typename R>
+auto champsim::cache_builder<P, R>::lpc_ways(uint32_t lpc_ways_) -> self_type&
+{
+  m_lpc_ways = lpc_ways_;
+  return *this;
+}
+
+template <typename P, typename R>
+auto champsim::cache_builder<P, R>::set_lpc_allow_promotion() -> self_type&
+{
+  m_lpc_allow_promotion = true;
+  return *this;
+}
+
+template <typename P, typename R>
+auto champsim::cache_builder<P, R>::reset_lpc_allow_promotion() -> self_type&
+{
+  m_lpc_allow_promotion = false;
+  return *this;
+}
+
+template <typename P, typename R>
+auto champsim::cache_builder<P, R>::lpc_replacement_policy(std::string policy_) -> self_type&
+{
+  m_lpc_replacement_policy = policy_;
   return *this;
 }
 

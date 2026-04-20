@@ -119,7 +119,7 @@ std::vector<std::string> champsim::plain_printer::format(CACHE::stats_type stats
     lines.push_back(fmt::format("cpu{}->{} PREFETCH REQUESTED: {:10} ISSUED: {:10} USEFUL: {:10} USELESS: {:10}", cpu, stats.name, stats.pf_requested,
                                 stats.pf_issued, stats.pf_useful, stats.pf_useless));
 
-    if (stats.name == "LLC" && (stats.lpc_hits > 0 || stats.lpc_misses > 0 || stats.lpc_fills > 0)) {
+    if (stats.name == "LLC") {
         lines.push_back(fmt::format("cpu{}->{} LPC_HITS: {:10} LPC_MISSES: {:10} LPC_FILLS: {:10}", cpu, stats.name, stats.lpc_hits, stats.lpc_misses, stats.lpc_fills));
         lines.push_back(fmt::format("cpu{}->{} LPC_INSERTIONS: {:10} LPC_EVICTIONS: {:10} LPC_PROMOTIONS: {:10}", cpu, stats.name, stats.lpc_insertions, stats.lpc_evictions, stats.lpc_promotions));
     }

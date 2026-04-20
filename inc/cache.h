@@ -147,8 +147,13 @@ public:
       champsim::address data{};
       uint32_t pf_metadata = 0;
       uint64_t lru_counter = 0;
+      uint32_t rrpv = 3;
   };
-  std::array<LPC_ENTRY, 8192> lpc_buffer{};
+  std::vector<LPC_ENTRY> lpc_buffer{};
+  uint32_t lpc_ways = 0;
+  uint32_t lpc_sets = 0;
+  bool lpc_allow_promotion = true;
+  std::string lpc_replacement_policy{};
   uint64_t lpc_lru_counter = 0;
 
 private:
@@ -158,6 +163,7 @@ private:
   std::pair<set_type::iterator, set_type::iterator> get_set_span(champsim::address address);
   [[nodiscard]] std::pair<set_type::const_iterator, set_type::const_iterator> get_set_span(champsim::address address) const;
   [[nodiscard]] long get_set_index(champsim::address address) const;
+  [[nodiscard]] long get_lpc_set_index(champsim::address address) const;
 
   template <typename T>
   bool should_activate_prefetcher(const T& pkt) const;
@@ -352,8 +358,10 @@ public:
         FILL_LATENCY(b.get_fill_latency() * b.m_clock_period), OFFSET_BITS(b.m_offset_bits), MAX_TAG(b.get_tag_bandwidth()), MAX_FILL(b.get_fill_bandwidth()),
         prefetch_as_load(b.m_pref_load), match_offset_bits(b.m_wq_full_addr), virtual_prefetch(b.m_va_pref), pref_activate_mask(b.m_pref_act_mask),
         enable_lpc(b.m_enable_lpc), allow_l1l2_in_lpc(b.m_allow_l1l2_in_lpc), enable_llc_filter_all(b.m_enable_llc_filter_all), enable_llc_filter_partial(b.m_enable_llc_filter_partial),
+        lpc_ways(b.m_lpc_ways.value_or(8192)), lpc_sets(b.m_lpc_sets.value_or(1)), lpc_allow_promotion(b.m_lpc_allow_promotion), lpc_replacement_policy(b.m_lpc_replacement_policy),
         pref_module_pimpl(std::make_unique<prefetcher_module_model<Ps...>>(this)), repl_module_pimpl(std::make_unique<replacement_module_model<Rs...>>(this))
   {
+      lpc_buffer.resize(lpc_sets * lpc_ways);
   }
 
   CACHE(const CACHE&) = delete;

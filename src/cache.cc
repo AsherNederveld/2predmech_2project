@@ -42,6 +42,7 @@ CACHE::CACHE(CACHE&& other)
       MAX_FILL(other.MAX_FILL), prefetch_as_load(other.prefetch_as_load), match_offset_bits(other.match_offset_bits), virtual_prefetch(other.virtual_prefetch),
       pref_activate_mask(std::move(other.pref_activate_mask)),
       enable_lpc(other.enable_lpc), allow_l1l2_in_lpc(other.allow_l1l2_in_lpc), enable_llc_filter_all(other.enable_llc_filter_all), enable_llc_filter_partial(other.enable_llc_filter_partial),
+      lpc_buffer(std::move(other.lpc_buffer)), lpc_ways(other.lpc_ways), lpc_sets(other.lpc_sets), lpc_allow_promotion(other.lpc_allow_promotion), lpc_replacement_policy(std::move(other.lpc_replacement_policy)),
 
       sim_stats(std::move(other.sim_stats)), roi_stats(std::move(other.roi_stats)),
 
@@ -85,6 +86,11 @@ auto CACHE::operator=(CACHE&& other) -> CACHE&
   this->allow_l1l2_in_lpc = other.allow_l1l2_in_lpc;
   this->enable_llc_filter_all = other.enable_llc_filter_all;
   this->enable_llc_filter_partial = other.enable_llc_filter_partial;
+  this->lpc_buffer = std::move(other.lpc_buffer);
+  this->lpc_ways = other.lpc_ways;
+  this->lpc_sets = other.lpc_sets;
+  this->lpc_allow_promotion = other.lpc_allow_promotion;
+  this->lpc_replacement_policy = std::move(other.lpc_replacement_policy);
 
   this->sim_stats = std::move(other.sim_stats);
   this->roi_stats = std::move(other.roi_stats);
@@ -265,16 +271,35 @@ bool CACHE::handle_fill(const mshr_type& fill_mshr)
     vpb_it->lru_counter = ++vpb_lru_counter;
   } else if (enable_lpc && NAME == "LLC" && fill_mshr.type == access_type::PREFETCH && (fill_mshr.prefetch_from_this || allow_l1l2_in_lpc)) {
     // Put prefetch into LPC
-    auto lpc_it = std::find_if(lpc_buffer.begin(), lpc_buffer.end(), [](const auto& x){ return !x.valid; });
-    if (lpc_it == lpc_buffer.end()) {
-       lpc_it = std::min_element(lpc_buffer.begin(), lpc_buffer.end(), [](const auto& a, const auto& b){ return a.lru_counter < b.lru_counter; });
-       sim_stats.lpc_evictions++;
+    long set_idx = get_lpc_set_index(fill_mshr.address);
+    auto lpc_set_begin = lpc_buffer.begin() + set_idx * lpc_ways;
+    auto lpc_set_end = lpc_set_begin + lpc_ways;
+
+    auto lpc_it = std::find_if(lpc_set_begin, lpc_set_end, [](const auto& x){ return !x.valid; });
+    if (lpc_it == lpc_set_end) {
+        if (lpc_replacement_policy == "srrip") {
+            lpc_it = std::max_element(lpc_set_begin, lpc_set_end, [](const auto& a, const auto& b){ return a.rrpv < b.rrpv; });
+            if (lpc_it->rrpv < 3) {
+                uint32_t diff = 3 - lpc_it->rrpv;
+                for (auto it = lpc_set_begin; it != lpc_set_end; ++it) {
+                    it->rrpv += diff;
+                }
+            }
+        } else if (lpc_replacement_policy == "random") {
+            lpc_it = lpc_set_begin + (std::rand() % lpc_ways);
+        } else {
+            lpc_it = std::min_element(lpc_set_begin, lpc_set_end, [](const auto& a, const auto& b){ return a.lru_counter < b.lru_counter; });
+        }
+        sim_stats.lpc_evictions++;
     }
     lpc_it->valid = true;
     lpc_it->address = fill_mshr.address;
     lpc_it->v_address = fill_mshr.v_address;
     lpc_it->data = fill_mshr.data_promise->data;
     lpc_it->pf_metadata = metadata_thru;
+    if (lpc_replacement_policy == "srrip") {
+        lpc_it->rrpv = 2; // maxRRPV - 1
+    }
     lpc_it->lru_counter = ++lpc_lru_counter;
     sim_stats.lpc_fills++;
     sim_stats.lpc_insertions++;
@@ -314,11 +339,19 @@ bool CACHE::try_hit(const tag_lookup_type& handle_pkt)
 
   // FIRST, check LPC buffer (Last Level Prefetch Cache)
   if (enable_lpc && NAME == "LLC") {
-      auto lpc_it = std::find_if(lpc_buffer.begin(), lpc_buffer.end(),
+      long set_idx = get_lpc_set_index(handle_pkt.address);
+      auto lpc_set_begin = lpc_buffer.begin() + set_idx * lpc_ways;
+      auto lpc_set_end = lpc_set_begin + lpc_ways;
+
+      auto lpc_it = std::find_if(lpc_set_begin, lpc_set_end,
                                  [matcher = matches_address(handle_pkt.address)](const auto& x) { return x.valid && matcher(x); });
                                  
-      if (lpc_it != lpc_buffer.end()) {
-          lpc_it->lru_counter = ++lpc_lru_counter;
+      if (lpc_it != lpc_set_end) {
+          if (lpc_replacement_policy == "srrip") {
+              lpc_it->rrpv = 0;
+          } else {
+              lpc_it->lru_counter = ++lpc_lru_counter;
+          }
           sim_stats.lpc_hits++;
           
           bool useful_prefetch = true;
@@ -338,18 +371,20 @@ bool CACHE::try_hit(const tag_lookup_type& handle_pkt)
           }
           
           // Bring the block to the LLC natively via MSHR -> handle_fill
-          if (std::size(MSHR) < MSHR_SIZE) {
-              tag_lookup_type handle_pkt_fake = handle_pkt;
-              
-              mshr_type spoof_mshr{handle_pkt_fake, current_time};
-              spoof_mshr.data_promise = champsim::waitable{mshr_type::returned_value{lpc_it->data, lpc_it->pf_metadata}, current_time};
-              spoof_mshr.to_return.clear(); // Avoid duplicating responses to waiting L2 requests
-              
-              MSHR.emplace_back(std::move(spoof_mshr));
-              
-          // Invalidate from LPC because it is migrating over to the LLC main capacity
-              lpc_it->valid = false;
-              sim_stats.lpc_promotions++;
+          if (lpc_allow_promotion) {
+              if (std::size(MSHR) < MSHR_SIZE) {
+                  tag_lookup_type handle_pkt_fake = handle_pkt;
+                  
+                  mshr_type spoof_mshr{handle_pkt_fake, current_time};
+                  spoof_mshr.data_promise = champsim::waitable{mshr_type::returned_value{lpc_it->data, lpc_it->pf_metadata}, current_time};
+                  spoof_mshr.to_return.clear(); // Avoid duplicating responses to waiting L2 requests
+                  
+                  MSHR.emplace_back(std::move(spoof_mshr));
+                  
+                  // Invalidate from LPC because it is migrating over to the LLC main capacity
+                  lpc_it->valid = false;
+                  sim_stats.lpc_promotions++;
+              }
           }
           return true;
       } else {
@@ -676,6 +711,14 @@ uint64_t CACHE::get_set(uint64_t address) const { return static_cast<uint64_t>(g
 // LCOV_EXCL_STOP
 
 long CACHE::get_set_index(champsim::address address) const { return address.slice(champsim::dynamic_extent{OFFSET_BITS, champsim::lg2(NUM_SET)}).to<long>(); }
+
+long CACHE::get_lpc_set_index(champsim::address address) const {
+    uint64_t shifted = address.to<uint64_t>() >> champsim::to_underlying(OFFSET_BITS);
+    if (lpc_sets > 1) {
+        return (shifted ^ (shifted >> champsim::lg2(lpc_sets))) % lpc_sets;
+    }
+    return 0;
+}
 
 template <typename It>
 std::pair<It, It> get_span(It anchor, typename std::iterator_traits<It>::difference_type set_idx, typename std::iterator_traits<It>::difference_type num_way)
@@ -1032,6 +1075,13 @@ void CACHE::end_phase(unsigned finished_cpu)
   roi_stats.pf_useful = sim_stats.pf_useful;
   roi_stats.pf_useless = sim_stats.pf_useless;
   roi_stats.pf_fill = sim_stats.pf_fill;
+
+  roi_stats.lpc_hits = sim_stats.lpc_hits;
+  roi_stats.lpc_misses = sim_stats.lpc_misses;
+  roi_stats.lpc_fills = sim_stats.lpc_fills;
+  roi_stats.lpc_insertions = sim_stats.lpc_insertions;
+  roi_stats.lpc_evictions = sim_stats.lpc_evictions;
+  roi_stats.lpc_promotions = sim_stats.lpc_promotions;
 
   for (auto* ul : upper_levels) {
     ul->roi_stats.RQ_ACCESS = ul->sim_stats.RQ_ACCESS;
