@@ -301,6 +301,7 @@ bool CACHE::handle_fill(const mshr_type& fill_mshr)
         lpc_it->rrpv = 2; // maxRRPV - 1
     }
     lpc_it->lru_counter = ++lpc_lru_counter;
+    lpc_it->already_hit = false;
     sim_stats.lpc_fills++;
     sim_stats.lpc_insertions++;
   }
@@ -357,7 +358,10 @@ bool CACHE::try_hit(const tag_lookup_type& handle_pkt)
           bool useful_prefetch = true;
           sim_stats.hits.increment(std::pair{handle_pkt.type, handle_pkt.cpu});
           if (handle_pkt.type != access_type::PREFETCH) {
-              ++sim_stats.pf_useful;
+              if (!lpc_it->already_hit) {
+                  ++sim_stats.pf_useful;
+                  lpc_it->already_hit = true;
+              }
           }
           
           auto metadata_thru = lpc_it->pf_metadata;

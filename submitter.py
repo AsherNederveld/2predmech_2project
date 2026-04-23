@@ -2,98 +2,106 @@ import os
 import subprocess
 
 # Configuration
-# executables = ["champsim_drrip_base","champsim_drrip_bypass", "champsim_mockingjay_base", "champsim_mockingjay_bypass", "champsim_pacman_base", "champsim_pacman_bypass", "champsim_mockingjay_lpc_all_triage", "champsim_mockingjay_lpc_llc_triage", "champsim_mockingjay_nlpc_all_triage", "champsim_mockingjay_nlpc_llc_triage" ]  # List of executables to run
-# executables = ["champsim_mockingjay_lpc_all_stride", "champsim_mockingjay_lpc_llc_stride", "champsim_mockingjay_nlpc_all_stride", "champsim_mockingjay_nlpc_llc_stride" ]  # List of executables to run
 executables = [
-     # # No pref_base
+     # No pref_base
     # "champsim_mockingjay.orig_no_17_nlpc_llc_filtNone_256_32_prom_lru",
     # "champsim_pacman_no_17_nlpc_llc_filtNone_256_32_prom_lru",
     # "champsim_drrip_no_17_nlpc_llc_filtNone_256_32_prom_lru",
     # "champsim_ship_no_17_nlpc_llc_filtNone_256_32_prom_lru",
     # "champsim_srrip_no_17_nlpc_llc_filtNone_256_32_prom_lru",
     # "champsim_random_no_17_nlpc_llc_filtNone_256_32_prom_lru",
-
-    # # No pref_filter
+    "champsim_lru_no_17_nlpc_llc_filtNone_256_32_prom_lru",
+    # No pref_filter
     # "champsim_mockingjay.orig_no_17_nlpc_llc_filtAll_256_32_prom_lru",
     # "champsim_pacman_no_17_nlpc_llc_filtAll_256_32_prom_lru",
     # "champsim_drrip_no_17_nlpc_llc_filtAll_256_32_prom_lru",
     # "champsim_ship_no_17_nlpc_llc_filtAll_256_32_prom_lru",
     # "champsim_srrip_no_17_nlpc_llc_filtAll_256_32_prom_lru",
     # "champsim_random_no_17_nlpc_llc_filtAll_256_32_prom_lru",
+    "champsim_lru_no_17_nlpc_llc_filtAll_256_32_prom_lru",
 
-    # # pythia pref_base
+    # pythia pref_base
     # "champsim_mockingjay.orig_pythia_17_nlpc_llc_filtNone_256_32_prom_lru",
     # "champsim_pacman_pythia_17_nlpc_llc_filtNone_256_32_prom_lru",
     # "champsim_drrip_pythia_17_nlpc_llc_filtNone_256_32_prom_lru",
     # "champsim_ship_pythia_17_nlpc_llc_filtNone_256_32_prom_lru",
     # "champsim_srrip_pythia_17_nlpc_llc_filtNone_256_32_prom_lru",
     # "champsim_random_pythia_17_nlpc_llc_filtNone_256_32_prom_lru",
+    "champsim_lru_pythia_17_nlpc_llc_filtNone_256_32_prom_lru",
 
-    # # triage pref_base
+    # triage pref_base
     # "champsim_mockingjay.orig_triage_17_nlpc_llc_filtNone_256_32_prom_lru",
     # "champsim_pacman_triage_17_nlpc_llc_filtNone_256_32_prom_lru",
     # "champsim_drrip_triage_17_nlpc_llc_filtNone_256_32_prom_lru",
     # "champsim_ship_triage_17_nlpc_llc_filtNone_256_32_prom_lru",
     # "champsim_srrip_triage_17_nlpc_llc_filtNone_256_32_prom_lru",
     # "champsim_random_triage_17_nlpc_llc_filtNone_256_32_prom_lru",
+    "champsim_lru_triage_17_nlpc_llc_filtNone_256_32_prom_lru",
 
-    # # sms pref_base
+    # sms pref_base
     # "champsim_mockingjay.orig_sms_17_nlpc_llc_filtNone_256_32_prom_lru",
     # "champsim_pacman_sms_17_nlpc_llc_filtNone_256_32_prom_lru",
     # "champsim_drrip_sms_17_nlpc_llc_filtNone_256_32_prom_lru",
     # "champsim_ship_sms_17_nlpc_llc_filtNone_256_32_prom_lru",
     # "champsim_srrip_sms_17_nlpc_llc_filtNone_256_32_prom_lru",
     # "champsim_random_sms_17_nlpc_llc_filtNone_256_32_prom_lru",
+    "champsim_lru_sms_17_nlpc_llc_filtNone_256_32_prom_lru",
 
-    # # pythia pref_bp
+    # pythia pref_bp
     # "champsim_mockingjay.orig_pythia_17_nlpc_llc_filtNonLLC_256_32_prom_lru",
     # "champsim_pacman_pythia_17_nlpc_llc_filtNonLLC_256_32_prom_lru",
     # "champsim_drrip_pythia_17_nlpc_llc_filtNonLLC_256_32_prom_lru",
     # "champsim_ship_pythia_17_nlpc_llc_filtNonLLC_256_32_prom_lru",
     # "champsim_srrip_pythia_17_nlpc_llc_filtNonLLC_256_32_prom_lru",
     # "champsim_random_pythia_17_nlpc_llc_filtNonLLC_256_32_prom_lru",
+    "champsim_lru_pythia_17_nlpc_llc_filtNonLLC_256_32_prom_lru",
 
-    # # triage pref_bp
+    # triage pref_bp
     # "champsim_mockingjay.orig_triage_17_nlpc_llc_filtNonLLC_256_32_prom_lru",
     # "champsim_pacman_triage_17_nlpc_llc_filtNonLLC_256_32_prom_lru",
     # "champsim_drrip_triage_17_nlpc_llc_filtNonLLC_256_32_prom_lru",
     # "champsim_ship_triage_17_nlpc_llc_filtNonLLC_256_32_prom_lru",
     # "champsim_srrip_triage_17_nlpc_llc_filtNonLLC_256_32_prom_lru",
     # "champsim_random_triage_17_nlpc_llc_filtNonLLC_256_32_prom_lru",
+    "champsim_lru_triage_17_nlpc_llc_filtNonLLC_256_32_prom_lru",
 
-    # # sms pref_bp
+    # sms pref_bp
     # "champsim_mockingjay.orig_sms_17_nlpc_llc_filtNonLLC_256_32_prom_lru",
     # "champsim_pacman_sms_17_nlpc_llc_filtNonLLC_256_32_prom_lru",
     # "champsim_drrip_sms_17_nlpc_llc_filtNonLLC_256_32_prom_lru",
     # "champsim_ship_sms_17_nlpc_llc_filtNonLLC_256_32_prom_lru",
     # "champsim_srrip_sms_17_nlpc_llc_filtNonLLC_256_32_prom_lru",
     # "champsim_random_sms_17_nlpc_llc_filtNonLLC_256_32_prom_lru",
+    "champsim_lru_sms_17_nlpc_llc_filtNonLLC_256_32_prom_lru",
 
-    # # pythia pref_lpc
+    # pythia pref_lpc
     # "champsim_mockingjay.orig_pythia_16_lpc_llc_filtAll_256_32_nprom_lru",
     # "champsim_pacman_pythia_16_lpc_llc_filtAll_256_32_nprom_lru",
     # "champsim_drrip_pythia_16_lpc_llc_filtAll_256_32_nprom_lru",
     # "champsim_ship_pythia_16_lpc_llc_filtAll_256_32_nprom_lru",
     # "champsim_srrip_pythia_16_lpc_llc_filtAll_256_32_nprom_lru",
     # "champsim_random_pythia_16_lpc_llc_filtAll_256_32_nprom_lru",
+    "champsim_lru_pythia_16_lpc_llc_filtAll_256_32_nprom_lru",
 
-    # # triage pref_lpc
+    # triage pref_lpc
     # "champsim_mockingjay.orig_triage_16_lpc_llc_filtAll_256_32_nprom_lru",
     # "champsim_pacman_triage_16_lpc_llc_filtAll_256_32_nprom_lru",
     # "champsim_drrip_triage_16_lpc_llc_filtAll_256_32_nprom_lru",
     # "champsim_ship_triage_16_lpc_llc_filtAll_256_32_nprom_lru",
     # "champsim_srrip_triage_16_lpc_llc_filtAll_256_32_nprom_lru",
     # "champsim_random_triage_16_lpc_llc_filtAll_256_32_nprom_lru",
-
-    # # sms pref_lpc
+    "champsim_lru_triage_16_lpc_llc_filtAll_256_32_nprom_lru",
+    
+    # sms pref_lpc
     # "champsim_mockingjay.orig_sms_16_lpc_llc_filtAll_256_32_nprom_lru",
     # "champsim_pacman_sms_16_lpc_llc_filtAll_256_32_nprom_lru",
     # "champsim_drrip_sms_16_lpc_llc_filtAll_256_32_nprom_lru",
     # "champsim_ship_sms_16_lpc_llc_filtAll_256_32_nprom_lru",
     # "champsim_srrip_sms_16_lpc_llc_filtAll_256_32_nprom_lru",
     # "champsim_random_sms_16_lpc_llc_filtAll_256_32_nprom_lru",
-
-    # # triage pref_lpc_wayset
+    "champsim_lru_sms_16_lpc_llc_filtAll_256_32_nprom_lru",
+    
+    # triage pref_lpc_wayset
     # "champsim_mockingjay.orig_triage_16_lpc_llc_filtAll_8192_1_nprom_lru",
     # "champsim_mockingjay.orig_triage_16_lpc_llc_filtAll_4096_2_nprom_lru",
     # "champsim_mockingjay.orig_triage_16_lpc_llc_filtAll_2048_4_nprom_lru",
@@ -105,28 +113,29 @@ executables = [
     # "champsim_mockingjay.orig_triage_16_lpc_llc_filtAll_32_256_nprom_lru",
     # "champsim_mockingjay.orig_triage_16_lpc_llc_filtAll_16_512_nprom_lru",
 
-    # # triage pref_lpc_repl
-    # #champsim_mockingjay.orig_triage_16_lpc_llc_filtAll_256_32_nprom_lru",
+    # triage pref_lpc_repl
+    # "champsim_mockingjay.orig_triage_16_lpc_llc_filtAll_256_32_nprom_lru",
     # "champsim_mockingjay.orig_triage_16_lpc_llc_filtAll_256_32_nprom_srrip",
     # "champsim_mockingjay.orig_triage_16_lpc_llc_filtAll_256_32_nprom_random",
 
-    # # triage pref_lpc_size
-    # #champsim_mockingjay.orig_triage_16_lpc_llc_filtAll_256_32_nprom_lru",
+    # triage pref_lpc_size
+    #champsim_mockingjay.orig_triage_16_lpc_llc_filtAll_256_32_nprom_lru",
     # "champsim_mockingjay.orig_triage_16_lpc_all_filtAll_256_32_nprom_lru",
 
     # "champsim_mockingjay.orig_triage_15_lpc_llc_filtAll_256_64_nprom_lru",
     # "champsim_mockingjay.orig_triage_15_lpc_all_filtAll_256_64_nprom_lru",
 
-    "champsim_mockingjay.orig_triage_14_lpc_llc_filtAll_256_96_nprom_lru",
-    "champsim_mockingjay.orig_triage_14_lpc_all_filtAll_256_96_nprom_lru",
+    # "champsim_mockingjay.orig_triage_14_lpc_llc_filtAll_256_96_nprom_lru",
+    # "champsim_mockingjay.orig_triage_14_lpc_all_filtAll_256_96_nprom_lru",
+    
     # "champsim_mockingjay.orig_triage_13_lpc_llc_filtAll_256_128_nprom_lru",
     # "champsim_mockingjay.orig_triage_13_lpc_all_filtAll_256_128_nprom_lru",
 
-    "champsim_mockingjay.orig_triage_12_lpc_llc_filtAll_256_160_nprom_lru",
-    "champsim_mockingjay.orig_triage_12_lpc_all_filtAll_256_160_nprom_lru",
+    # "champsim_mockingjay.orig_triage_12_lpc_llc_filtAll_256_160_nprom_lru",
+    # "champsim_mockingjay.orig_triage_12_lpc_all_filtAll_256_160_nprom_lru",
 
-    "champsim_mockingjay.orig_triage_11_lpc_llc_filtAll_256_192_nprom_lru",
-    "champsim_mockingjay.orig_triage_11_lpc_all_filtAll_256_192_nprom_lru"
+    # "champsim_mockingjay.orig_triage_11_lpc_llc_filtAll_256_192_nprom_lru",
+    # "champsim_mockingjay.orig_triage_11_lpc_all_filtAll_256_192_nprom_lru"
 ]
 # Each entry: (trace_list_file, input_path_prefix, output_suffix)
 # Updated to use absolute paths to avoid relative pathing issues
@@ -134,6 +143,7 @@ jobs = [
     ("traces_list.txt", "/scratch/cluster/akanksha/CRCRealTraces/", ""),
     ("real.txt", "/scratch/cluster/qduong/actual_graphs_1B/traces/", ""),
     ("synthetic.txt", "/scratch/cluster/mbd2325/predmech_traces/", "s"),
+    # ("google.txt", "/scratch/cluster/mbd2325/googletraces/", ""),
 ]
 
 condor_dir = "./condor_jobs"  # Where job files will be written

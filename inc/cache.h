@@ -148,6 +148,7 @@ public:
       uint32_t pf_metadata = 0;
       uint64_t lru_counter = 0;
       uint32_t rrpv = 3;
+      bool already_hit = false;
   };
   std::vector<LPC_ENTRY> lpc_buffer{};
   uint32_t lpc_ways = 0;
