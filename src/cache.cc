@@ -350,7 +350,7 @@ bool CACHE::try_hit(const tag_lookup_type& handle_pkt)
       if (lpc_it != lpc_set_end) {
           if (lpc_replacement_policy == "srrip") {
               lpc_it->rrpv = 0;
-          } else {
+          } else if (lpc_replacement_policy != "fifo") {
               lpc_it->lru_counter = ++lpc_lru_counter;
           }
           sim_stats.lpc_hits++;
