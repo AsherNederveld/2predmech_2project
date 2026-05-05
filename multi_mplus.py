@@ -11,7 +11,7 @@ def normalize(name):
 def extract_stats(filepath):
     # Initialize all requested stats
     stats = {
-        "ipc": None,
+        "ipc_0": None, "ipc_1": None, "ipc_2": None, "ipc_3": None,
         "llc_total_access": None,
         "llc_total_hit": None,
         "llc_total_miss": None,
@@ -34,25 +34,40 @@ def extract_stats(filepath):
         with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
             content = f.read()
 
-        # Extract IPC
-        ipc_matches = re.findall(r"cumulative IPC:\s*([\d.]+)", content)
-        if ipc_matches: stats["ipc"] = float(ipc_matches[-1])
+        # Extract IPC for 4 cores
+        for core in range(4):
+            ipc_matches = re.findall(rf"CPU {core} cumulative IPC:\s*([\d.]+)", content)
+            if ipc_matches: stats[f"ipc_{core}"] = float(ipc_matches[-1])
+
+        def get_last_match(pattern):
+            matches = re.findall(pattern, content)
+            if matches: return matches[-1]
+            return None
+
+        # Helper to sum stats across all 4 cores
+        def sum_stats(regex_pattern, num_groups):
+            totals = [0] * num_groups
+            found = False
+            for core in range(4):
+                pattern = regex_pattern.replace("CPU_ID", str(core))
+                last_match = get_last_match(pattern)
+                if last_match:
+                    found = True
+                    for i in range(num_groups):
+                        totals[i] += int(last_match[i])
+            return totals if found else [None] * num_groups
 
         # Extract LLC TOTAL (Access, Hit, Miss, MSHR_Merge)
-        llc_tot = re.findall(r"cpu0->LLC TOTAL\s+ACCESS:\s+(\d+)\s+HIT:\s+(\d+)\s+MISS:\s+(\d+)\s+MSHR_MERGE:\s+(\d+)", content)
-        if llc_tot:
-            stats["llc_total_access"] = int(llc_tot[-1][0])
-            stats["llc_total_hit"] = int(llc_tot[-1][1])
-            stats["llc_total_miss"] = int(llc_tot[-1][2])
-            stats["llc_mshr_merge"] = int(llc_tot[-1][3])
+        llc_tot = sum_stats(r"cpuCPU_ID->LLC TOTAL\s+ACCESS:\s+(\d+)\s+HIT:\s+(\d+)\s+MISS:\s+(\d+)\s+MSHR_MERGE:\s+(\d+)", 4)
+        if llc_tot[0] is not None:
+            stats["llc_total_access"] = llc_tot[0]
+            stats["llc_total_hit"] = llc_tot[1]
+            stats["llc_total_miss"] = llc_tot[2]
+            stats["llc_mshr_merge"] = llc_tot[3]
 
-        # Helper function to extract MISS and MSHR_MERGE for specific request types
         def get_req_stats(req_type):
-            pattern = rf"cpu0->LLC {req_type}\s+ACCESS:\s+\d+\s+HIT:\s+\d+\s+MISS:\s+(\d+)\s+MSHR_MERGE:\s+(\d+)"
-            matches = re.findall(pattern, content)
-            if matches:
-                return int(matches[-1][0]), int(matches[-1][1])
-            return None, None
+            pattern = rf"cpuCPU_ID->LLC {req_type}\s+ACCESS:\s+\d+\s+HIT:\s+\d+\s+MISS:\s+(\d+)\s+MSHR_MERGE:\s+(\d+)"
+            return sum_stats(pattern, 2)
 
         load_miss, load_mshr = get_req_stats("LOAD")
         rfo_miss, rfo_mshr = get_req_stats("RFO")
@@ -60,24 +75,24 @@ def extract_stats(filepath):
         pf_miss, pf_mshr = get_req_stats("PREFETCH")
 
         # Extract LLC PREFETCH (Requested, Issued, Useful, Useless)
-        llc_pf = re.findall(r"cpu0->LLC PREFETCH REQUESTED:\s+(\d+)\s+ISSUED:\s+(\d+)\s+USEFUL:\s+(\d+)\s+USELESS:\s+(\d+)", content)
-        if llc_pf:
-            stats["llc_pf_req"] = int(llc_pf[-1][0])
-            stats["llc_pf_issued"] = int(llc_pf[-1][1])
-            stats["llc_pf_useful"] = int(llc_pf[-1][2])
-            stats["llc_pf_useless"] = int(llc_pf[-1][3])
+        llc_pf = sum_stats(r"cpuCPU_ID->LLC PREFETCH REQUESTED:\s+(\d+)\s+ISSUED:\s+(\d+)\s+USEFUL:\s+(\d+)\s+USELESS:\s+(\d+)", 4)
+        if llc_pf[0] is not None:
+            stats["llc_pf_req"] = llc_pf[0]
+            stats["llc_pf_issued"] = llc_pf[1]
+            stats["llc_pf_useful"] = llc_pf[2]
+            stats["llc_pf_useless"] = llc_pf[3]
 
         # Extract LPC HITS and MISSES
-        lpc_hm = re.findall(r"cpu0->LLC LPC_HITS:\s+(\d+)\s+LPC_MISSES:\s+(\d+)", content)
-        if lpc_hm:
-            stats["lpc_hits"] = int(lpc_hm[-1][0])
-            stats["lpc_misses"] = int(lpc_hm[-1][1])
+        lpc_hm = sum_stats(r"cpuCPU_ID->LLC LPC_HITS:\s+(\d+)\s+LPC_MISSES:\s+(\d+)", 2)
+        if lpc_hm[0] is not None:
+            stats["lpc_hits"] = lpc_hm[0]
+            stats["lpc_misses"] = lpc_hm[1]
 
         # Extract LPC INSERTIONS and EVICTIONS
-        lpc_ie = re.findall(r"cpu0->LLC LPC_INSERTIONS:\s+(\d+)\s+LPC_EVICTIONS:\s+(\d+)", content)
-        if lpc_ie:
-            stats["lpc_insertions"] = int(lpc_ie[-1][0])
-            stats["lpc_evictions"] = int(lpc_ie[-1][1])
+        lpc_ie = sum_stats(r"cpuCPU_ID->LLC LPC_INSERTIONS:\s+(\d+)\s+LPC_EVICTIONS:\s+(\d+)", 2)
+        if lpc_ie[0] is not None:
+            stats["lpc_insertions"] = lpc_ie[0]
+            stats["lpc_evictions"] = lpc_ie[1]
 
         # Calculate LLC Insertions dynamically based on filename
         filename = os.path.basename(filepath)
@@ -98,14 +113,6 @@ def extract_stats(filepath):
         print(f"Error extracting stats from {filepath}: {e}")
         
     return stats
-
-def find_file(prefix, bench, all_files):
-    norm_bench = normalize(bench)
-    for filename in all_files:
-        if filename.startswith(prefix) and filename.endswith('.out'):
-            if norm_bench in normalize(filename):
-                return filename
-    return None
 
 def get_dynamic_benchmarks(prefixes, all_files):
     """Dynamically extracts unique benchmark names from filenames based on the provided prefixes."""
@@ -137,7 +144,7 @@ def plot_results(benchmarks, speedup_dict, output_path):
         plt.bar(x + offset, pct_values, width, label=exp_label)
 
     plt.axhline(0, color='black', linewidth=0.8)
-    plt.ylabel('Speedup (%)')
+    plt.ylabel('Geomean Speedup (%) across Cores')
     plt.title('Performance Speedup by Experiment')
     plt.xticks(x + width / 2, benchmarks, rotation=90, fontsize=8)
     plt.legend()
@@ -160,7 +167,7 @@ def plot_geomean_results(geomean_dict, output_path):
     bars = plt.bar(labels, values, color='cornflowerblue', edgecolor='black')
     
     plt.axhline(0, color='black', linewidth=0.8)
-    plt.ylabel('Geometric Mean Speedup (%)')
+    plt.ylabel('Final Geomean Speedup (%) (Geomean of Core Geomeans)')
     plt.title('Overall Geometric Mean Speedup by Experiment vs Baseline')
     plt.xticks(rotation=45, ha='right', fontsize=10)
     
@@ -179,44 +186,50 @@ def plot_geomean_results(geomean_dict, output_path):
 
 def main():
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    dump_dir = os.path.join(script_dir, "new_experiments")
+    dump_dir = os.path.join(script_dir, "new_multi_exp")
     
-    # --- CONFIGURATION ---
-    base_prefix = "champsim_lru_no_17_nlpc_llc_filtNone_256_32_prom_lru"
-    exp_prefixes = [
-        "champsim_mockingjay.orig_triage_17_nlpc_llc_filtNonLLC_256_32_prom_lru",
-        "champsim_mockingjay.orig_triage_16_lpc_llc_filtAll_256_32_nprom_lru",
-
-        "champsim_mockingjay.orig_triage_15_lpc_llc_filtAll_256_64_nprom_lru",
-
-        "champsim_mockingjay.orig_triage_14_lpc_llc_filtAll_256_96_nprom_lru",
-        
-        "champsim_mockingjay.orig_triage_13_lpc_llc_filtAll_256_128_nprom_lru",
-
-        "champsim_mockingjay.orig_triage_12_lpc_llc_filtAll_256_160_nprom_lru",
-
-        "champsim_mockingjay.orig_triage_11_lpc_llc_filtAll_256_192_nprom_lru",
-        "champsim_mockingjay.orig_triage_9_lpc_llc_filtAll_256_256_nprom_lru",
-    ]
-
-    output_filename = f"./new_res/results_{base_prefix}_vs_{exp_prefixes[0]}.csv"
-    os.makedirs("./new_res", exist_ok=True)
-
     if not os.path.exists(dump_dir):
         print(f"Error: Directory {dump_dir} does not exist.")
         return
 
     all_files = os.listdir(dump_dir)
+    # Extract unique prefixes assuming format prefix.benchmark.out
+    # We will use .config[X] as the benchmark part in multi_exp
+    all_prefixes = sorted(list(set(f.replace(".out", "").rsplit(".", 1)[0] for f in all_files if f.endswith(".out"))))
+
+    if not all_prefixes:
+        print("No prefixes found in the directory.")
+        return
+        
+    # Attempt to set the base prefix to the one with 'filtNone' and 'prom_lru' to be safe
+    base_prefix = "champsim_lru_no_17_nlpc_llc_filtNone_256_32_prom_lru"
+    if base_prefix not in all_prefixes:
+        base_prefix = all_prefixes[0]
+        
+    # Define specific experiments to run here. If empty, runs on all prefixes.
+    TARGET_EXPERIMENTS = [
+        "champsim_mockingjay.orig_no_17_nlpc_llc_filtNone_256_32_prom_lru",
+        "champsim_mockingjay.orig_sms_17_nlpc_llc_filtNone_256_32_prom_lru",
+        "champsim_mockingjay.orig_sms_17_nlpc_llc_filtNonLLC_256_32_prom_lru",
+        "champsim_mockingjay.orig_sms_16_lpc_all_filtAll_256_32_nprom_lru",
+        "champsim_mockingjay.orig_sms_16_lpc_llc_filtAll_256_32_nprom_lru"
+    ]
     
-    all_prefixes = [base_prefix] + exp_prefixes
-    
+    if TARGET_EXPERIMENTS:
+        exp_prefixes = [p for p in TARGET_EXPERIMENTS if p in all_prefixes and p != base_prefix]
+    else:
+        exp_prefixes = [p for p in all_prefixes if p != base_prefix]
+
+    output_filename = f"./new_res/multi_results_{base_prefix}_vs_all.csv"
+    os.makedirs("./new_res", exist_ok=True)
+
     print("\n--- Files Found Per Config ---")
-    for prefix in all_prefixes:
+    for prefix in [base_prefix] + exp_prefixes:
         count = sum(1 for f in all_files if f.startswith(prefix) and f.endswith('.out'))
         print(f"{prefix}: {count}")
     print("------------------------------\n")
 
-    dynamic_benchmarks = get_dynamic_benchmarks(all_prefixes, all_files)
+    dynamic_benchmarks = get_dynamic_benchmarks([base_prefix] + exp_prefixes, all_files)
     
     if not dynamic_benchmarks:
         print("No benchmarks found matching the given prefixes in the dump directory.")
@@ -226,7 +239,7 @@ def main():
 
     # Define the statistics keys and header titles
     stat_mappings = {
-        "IPC": "ipc",
+        "IPC_0": "ipc_0", "IPC_1": "ipc_1", "IPC_2": "ipc_2", "IPC_3": "ipc_3",
         "LLC_Total_Access": "llc_total_access",
         "LLC_Total_Hit": "llc_total_hit",
         "LLC_Total_Miss": "llc_total_miss",
@@ -252,6 +265,12 @@ def main():
 
     # Storage for graphing
     graph_benchmarks = []
+    
+    # Store per-core speedups for geomean calculations
+    # exp -> {core -> [speedup_ratio]}
+    core_speedups = {exp: {core: [] for core in range(4)} for exp in exp_prefixes}
+    
+    # Geomean of 4 cores per benchmark for plotting
     graph_speedups = {exp: [] for exp in exp_prefixes}
 
     with open(output_filename, 'w', newline='') as csvfile:
@@ -265,38 +284,55 @@ def main():
             row = {"Benchmark": bench}
             
             # --- BASELINE EXTRACTION ---
-            baseline_file = find_file(base_prefix, bench, all_files)
-            b_path = os.path.join(dump_dir, baseline_file) if baseline_file else None
+            b_path = os.path.join(dump_dir, f"{base_prefix}.{bench}.out")
+            if not os.path.exists(b_path):
+                # Fallback to loose match
+                for f in all_files:
+                    if f.startswith(base_prefix) and bench in f:
+                        b_path = os.path.join(dump_dir, f)
+                        break
+            
             b_stats = extract_stats(b_path)
             
             # Fill Baseline row data
             for header_k, dict_k in stat_mappings.items():
-                val = b_stats[dict_k]
-                if dict_k == "ipc" and val is None:
-                    val = 0.3576000 # Your hardcoded fallback
+                val = b_stats.get(dict_k)
                 row[f"Baseline_{header_k}"] = val if val is not None else "N/A"
             
-            baseline_ipc = row["Baseline_IPC"]
+            baseline_ipcs = [b_stats.get(f"ipc_{c}") for c in range(4)]
             graph_benchmarks.append(bench)
 
             # --- EXPERIMENT EXTRACTION ---
             for exp in exp_prefixes:
-                exp_file = find_file(exp, bench, all_files)
-                e_path = os.path.join(dump_dir, exp_file) if exp_file else None
+                e_path = os.path.join(dump_dir, f"{exp}.{bench}.out")
+                if not os.path.exists(e_path):
+                    for f in all_files:
+                        if f.startswith(exp) and bench in f:
+                            e_path = os.path.join(dump_dir, f)
+                            break
+                            
                 e_stats = extract_stats(e_path)
                 
                 # Fill Exp row data
                 for header_k, dict_k in stat_mappings.items():
-                    val = e_stats[dict_k]
+                    val = e_stats.get(dict_k)
                     row[f"{exp}_{header_k}"] = val if val is not None else "N/A"
                 
-                exp_ipc = e_stats["ipc"]
+                exp_ipcs = [e_stats.get(f"ipc_{c}") for c in range(4)]
                 
-                # Speedup calculation
-                if isinstance(baseline_ipc, float) and isinstance(exp_ipc, float) and baseline_ipc > 0:
-                    ratio = exp_ipc / baseline_ipc
-                    graph_speedups[exp].append(ratio)
-                    row[f"{exp}_Speedup"] = f"{((ratio - 1) * 100):.2f}%"
+                bench_ratios = []
+                for c in range(4):
+                    if isinstance(baseline_ipcs[c], float) and isinstance(exp_ipcs[c], float) and baseline_ipcs[c] > 0:
+                        ratio = exp_ipcs[c] / baseline_ipcs[c]
+                        core_speedups[exp][c].append(ratio)
+                        bench_ratios.append(ratio)
+                    else:
+                        core_speedups[exp][c].append(None)
+                
+                if len(bench_ratios) == 4:
+                    bench_geomean = statistics.geometric_mean(bench_ratios)
+                    graph_speedups[exp].append(bench_geomean)
+                    row[f"{exp}_Speedup"] = f"{((bench_geomean - 1) * 100):.2f}%"
                 else:
                     graph_speedups[exp].append(None)
                     row[f"{exp}_Speedup"] = "N/A"
@@ -309,14 +345,20 @@ def main():
     print("\n--- Summary (Geometric Mean Speedup) ---")
     geomean_data = {}
     for exp in exp_prefixes:
-        valid_ratios = [r for r in graph_speedups[exp] if r is not None]
-        if valid_ratios:
-            gmean = statistics.geometric_mean(valid_ratios)
-            speedup_pct = (gmean - 1) * 100
+        valid_core_gmeans = []
+        for c in range(4):
+            valid_ratios = [r for r in core_speedups[exp][c] if r is not None]
+            if valid_ratios:
+                c_gmean = statistics.geometric_mean(valid_ratios)
+                valid_core_gmeans.append(c_gmean)
+        
+        if len(valid_core_gmeans) == 4:
+            final_gmean = statistics.geometric_mean(valid_core_gmeans)
+            speedup_pct = (final_gmean - 1) * 100
             geomean_data[exp] = speedup_pct
             print(f"{exp}: {speedup_pct:.2f}%")
         else:
-            print(f"{exp}: No data")
+            print(f"{exp}: No complete data for all 4 cores")
 
     # Generate Graphs
     plot_results(graph_benchmarks, graph_speedups, output_filename)

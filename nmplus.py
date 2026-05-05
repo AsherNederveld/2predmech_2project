@@ -274,7 +274,7 @@ def main():
     print(f"Graphing Mode: {args.stat} ({'Relative %' if args.relative else 'Absolute'})")
 
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    dump_dir = os.path.join(script_dir, "experiments")
+    dump_dir = os.path.join(script_dir, "new_experiments")
 
     os.makedirs("./new_res", exist_ok=True)
     out_csv = "./new_res/parse_results.csv"

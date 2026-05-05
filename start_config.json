@@ -1,9 +1,9 @@
 {
-    "executable_name": "champsim_lru_sms_16_lpc_llc_filtAll_256_32_nprom_lru",
+    "executable_name": "champsim_lru_sms_16_lpc_all_filtAll_256_32_nprom_lru",
     "block_size": 64,
     "page_size": 4096,
     "heartbeat_frequency": 10000000,
-    "num_cores": 1,
+    "num_cores": 4,
     "ooo_cpu": [
         {
             "frequency": 4000,
@@ -151,7 +151,7 @@
         "prefetcher": "sms",
         "replacement": "lru",
         "enable_lpc": true,
-        "allow_l1l2_in_lpc": false,
+        "allow_l1l2_in_lpc": true,
         "enable_llc_filter_all": true,
         "enable_llc_filter_partial": true,
         "lpc_ways": 256,

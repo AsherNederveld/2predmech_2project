@@ -128,7 +128,6 @@ CACHE::mshr_type CACHE::mshr_type::merge(mshr_type predecessor, mshr_type succes
 
   mshr_type retval{(successor.type == access_type::PREFETCH) ? predecessor : successor};
 
-  // set the time enqueued to the predecessor unless its a demand into prefetch, in which case we use the successor
   retval.time_enqueued =
       ((successor.type != access_type::PREFETCH && predecessor.type == access_type::PREFETCH)) ? successor.time_enqueued : predecessor.time_enqueued;
   retval.instr_depend_on_me = merged_instr;
@@ -182,7 +181,6 @@ bool CACHE::handle_fill(const mshr_type& fill_mshr)
 {
   cpu = fill_mshr.cpu;
 
-  // find victim
   auto [set_begin, set_end] = get_set_span(fill_mshr.address);
   auto way = std::find_if_not(set_begin, set_end, [](auto x) { return x.valid || x.is_metadata; });
   if (way == set_end) {
@@ -190,7 +188,6 @@ bool CACHE::handle_fill(const mshr_type& fill_mshr)
                                                 fill_mshr.address, fill_mshr.type));
   }
 
-  // Bypass LLC for prefetch fills asher
   if (NAME == "LLC" && fill_mshr.type == access_type::PREFETCH) {
     if (enable_llc_filter_all) {
       way = set_end;
@@ -201,8 +198,8 @@ bool CACHE::handle_fill(const mshr_type& fill_mshr)
 
   assert(set_begin <= way);
   assert(way <= set_end);
-  assert(way != set_end || fill_mshr.type != access_type::WRITE); // Writes may not bypass
-  const auto way_idx = std::distance(set_begin, way);             // cast protected by earlier assertion
+  assert(way != set_end || fill_mshr.type != access_type::WRITE); 
+  const auto way_idx = std::distance(set_begin, way);             /
 
   if constexpr (champsim::debug_print) {
     fmt::print("[{}] {} instr_id: {} address: {} v_address: {} set: {} way: {} type: {} prefetch_metadata: {} cycle_enqueued: {} cycle: {}\n", NAME, __func__,
@@ -241,7 +238,6 @@ bool CACHE::handle_fill(const mshr_type& fill_mshr)
 
   auto metadata_thru = impl_prefetcher_cache_fill(module_address(fill_mshr), get_set_index(fill_mshr.address), way_idx,
                                                   (fill_mshr.type == access_type::PREFETCH), evicting_address, fill_mshr.data_promise->pf_metadata);
-  // Do not update replacement policy if we are bypassing the cache asher
   if (way != set_end) {
     impl_replacement_cache_fill(fill_mshr.cpu, get_set_index(fill_mshr.address), way_idx, module_address(fill_mshr), fill_mshr.ip, evicting_address,
                                 fill_mshr.type);
@@ -258,7 +254,6 @@ bool CACHE::handle_fill(const mshr_type& fill_mshr)
 
     *way = fill_block(fill_mshr, metadata_thru);
   } else if (fill_mshr.type == access_type::PREFETCH && fill_mshr.data_promise->pf_metadata == 0x0000BEEF) {
-    // Put strictly VPB-tagged prefetch into Victim Prefetch Buffer!
     auto vpb_it = std::find_if(victim_prefetch_buffer.begin(), victim_prefetch_buffer.end(), [](const auto& x){ return !x.valid; });
     if (vpb_it == victim_prefetch_buffer.end()) {
        vpb_it = std::min_element(victim_prefetch_buffer.begin(), victim_prefetch_buffer.end(), [](const auto& a, const auto& b){ return a.lru_counter < b.lru_counter; });
@@ -270,7 +265,6 @@ bool CACHE::handle_fill(const mshr_type& fill_mshr)
     vpb_it->pf_metadata = metadata_thru;
     vpb_it->lru_counter = ++vpb_lru_counter;
   } else if (enable_lpc && NAME == "LLC" && fill_mshr.type == access_type::PREFETCH && (fill_mshr.prefetch_from_this || allow_l1l2_in_lpc)) {
-    // Put prefetch into LPC
     long set_idx = get_lpc_set_index(fill_mshr.address);
     auto lpc_set_begin = lpc_buffer.begin() + set_idx * lpc_ways;
     auto lpc_set_end = lpc_set_begin + lpc_ways;
@@ -298,7 +292,7 @@ bool CACHE::handle_fill(const mshr_type& fill_mshr)
     lpc_it->data = fill_mshr.data_promise->data;
     lpc_it->pf_metadata = metadata_thru;
     if (lpc_replacement_policy == "srrip") {
-        lpc_it->rrpv = 2; // maxRRPV - 1
+        lpc_it->rrpv = 2; 
     }
     lpc_it->lru_counter = ++lpc_lru_counter;
     lpc_it->already_hit = false;
@@ -306,7 +300,6 @@ bool CACHE::handle_fill(const mshr_type& fill_mshr)
     sim_stats.lpc_insertions++;
   }
 
-  // COLLECT STATS
   if (fill_mshr.type != access_type::PREFETCH)
     sim_stats.total_miss_latency_cycles += (current_time - (fill_mshr.time_enqueued + clock_period)) / clock_period;
   sim_stats.mshr_return.increment(std::pair{fill_mshr.type, fill_mshr.cpu});
@@ -338,7 +331,6 @@ bool CACHE::try_hit(const tag_lookup_type& handle_pkt)
 {
   cpu = handle_pkt.cpu;
 
-  // FIRST, check LPC buffer (Last Level Prefetch Cache)
   if (enable_lpc && NAME == "LLC") {
       long set_idx = get_lpc_set_index(handle_pkt.address);
       auto lpc_set_begin = lpc_buffer.begin() + set_idx * lpc_ways;
@@ -374,18 +366,16 @@ bool CACHE::try_hit(const tag_lookup_type& handle_pkt)
             ret->push_back(response);
           }
           
-          // Bring the block to the LLC natively via MSHR -> handle_fill
           if (lpc_allow_promotion) {
               if (std::size(MSHR) < MSHR_SIZE) {
                   tag_lookup_type handle_pkt_fake = handle_pkt;
                   
                   mshr_type spoof_mshr{handle_pkt_fake, current_time};
                   spoof_mshr.data_promise = champsim::waitable{mshr_type::returned_value{lpc_it->data, lpc_it->pf_metadata}, current_time};
-                  spoof_mshr.to_return.clear(); // Avoid duplicating responses to waiting L2 requests
+                  spoof_mshr.to_return.clear(); 
                   
                   MSHR.emplace_back(std::move(spoof_mshr));
                   
-                  // Invalidate from LPC because it is migrating over to the LLC main capacity
                   lpc_it->valid = false;
                   sim_stats.lpc_promotions++;
               }
@@ -396,14 +386,12 @@ bool CACHE::try_hit(const tag_lookup_type& handle_pkt)
       }
   }
 
-  // SECOND, check Victim Prefetch Buffer
   auto vpb_it = std::find_if(victim_prefetch_buffer.begin(), victim_prefetch_buffer.end(),
                              [matcher = matches_address(handle_pkt.address)](const auto& x) { return x.valid && matcher(x); });
                              
   if (vpb_it != victim_prefetch_buffer.end()) {
       vpb_it->lru_counter = ++vpb_lru_counter;
       
-      // Found in VPB! Send responses immediately without initial LLC manipulation
       bool useful_prefetch = true;
       sim_stats.hits.increment(std::pair{handle_pkt.type, handle_pkt.cpu});
       if (handle_pkt.type != access_type::PREFETCH) {
@@ -420,23 +408,20 @@ bool CACHE::try_hit(const tag_lookup_type& handle_pkt)
         ret->push_back(response);
       }
       
-      // Bring the block to the LLC natively via MSHR -> handle_fill
       if (std::size(MSHR) < MSHR_SIZE) {
           tag_lookup_type handle_pkt_fake = handle_pkt;
           
           mshr_type spoof_mshr{handle_pkt_fake, current_time};
           spoof_mshr.data_promise = champsim::waitable{mshr_type::returned_value{vpb_it->data, vpb_it->pf_metadata}, current_time};
-          spoof_mshr.to_return.clear(); // Avoid duplicating responses to waiting L2 requests
+          spoof_mshr.to_return.clear();
           
           MSHR.emplace_back(std::move(spoof_mshr));
           
-          // Invalidate from VPB because it is migrating over to the LLC main capacity
           vpb_it->valid = false;
       }
       return true;
   }
 
-  // access cache
   auto [set_begin, set_end] = get_set_span(handle_pkt.address);
   auto way = std::find_if(set_begin, set_end, [matcher = matches_address(handle_pkt.address)](const auto& x) { return x.valid && matcher(x) && !x.is_metadata; });
   const auto hit = (way != set_end);
@@ -453,7 +438,6 @@ bool CACHE::try_hit(const tag_lookup_type& handle_pkt)
     metadata_thru = impl_prefetcher_cache_operate(module_address(handle_pkt), handle_pkt.ip, hit, useful_prefetch, handle_pkt.type, metadata_thru);
   }
 
-  // update replacement policy
   const auto way_idx = std::distance(set_begin, way);
   impl_update_replacement_state(handle_pkt.cpu, get_set_index(handle_pkt.address), way_idx, module_address(handle_pkt), handle_pkt.ip, {}, handle_pkt.type,
                                 hit);
@@ -468,7 +452,6 @@ bool CACHE::try_hit(const tag_lookup_type& handle_pkt)
 
     way->dirty |= (handle_pkt.type == access_type::WRITE);
 
-    // update prefetch stats and reset prefetch bit
     if (useful_prefetch) {
       ++sim_stats.pf_useful;
       way->prefetch = false;
